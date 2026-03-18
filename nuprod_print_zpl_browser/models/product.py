@@ -10,10 +10,10 @@ class nuprod_product_template_zpl(models.Model):
     _inherit = "product.template"
 
     def action_nuprod_print_product_zpl(self):
-        render = self.env["ir.actions.report"]._render(
-            "product.report_productlabel_dymo",
-            self.ids,
+        report = self.env["ir.actions.report"].search(
+            [("report_name", "=", "product.report_productlabel_dymo")], limit=1
         )
+        render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")
         datas = {
             "render": render[0],
@@ -31,10 +31,10 @@ class nuprod_product_product_zpl(models.Model):
     _inherit = "product.product"
 
     def action_nuprod_print_product_zpl(self):
-        render = self.env["ir.actions.report"]._render(
-            "product.report_productlabel_dymo",
-            self.ids,
+        report = self.env["ir.actions.report"].search(
+            [("report_name", "=", "product.report_productlabel_dymo")], limit=1
         )
+        render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")
         datas = {
             "render": render[0],

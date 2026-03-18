@@ -10,10 +10,10 @@ class nuprod_stock_location_zpl(models.Model):
     _inherit = "stock.location"
 
     def action_nuprod_print_location_zpl(self):
-        render = self.env["ir.actions.report"]._render(
-            "stock.report_generic_barcode",
-            self.ids,
+        report = self.env["ir.actions.report"].search(
+            [("report_name", "=", "stock.report_generic_barcode")], limit=1
         )
+        render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")
         datas = {
             "render": render[0],
