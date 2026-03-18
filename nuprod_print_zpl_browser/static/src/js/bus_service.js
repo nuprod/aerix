@@ -64,15 +64,33 @@ const printZPLService = {
                 return;
               }
 
-              targetDevice.send(
-                payload.render,
-                function (success) {
-                  console.log("Print successful!");
-                },
-                function (error) {
-                  console.error("Print error:", error);
-                },
-              );
+              if (payload.is_pdf) {
+                const binaryStr = atob(payload.render);
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) {
+                  bytes[i] = binaryStr.charCodeAt(i);
+                }
+                const blob = new Blob([bytes], { type: "application/pdf" });
+                targetDevice.sendFile(
+                  blob,
+                  function (success) {
+                    console.log("Print successful!");
+                  },
+                  function (error) {
+                    console.error("Print error:", error);
+                  },
+                );
+              } else {
+                targetDevice.send(
+                  payload.render,
+                  function (success) {
+                    console.log("Print successful!");
+                  },
+                  function (error) {
+                    console.error("Print error:", error);
+                  },
+                );
+              }
             },
             function (error) {
               console.error("Failed to get devices:", error);

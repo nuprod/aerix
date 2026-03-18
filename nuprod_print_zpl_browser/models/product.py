@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import base64
+
 from odoo import models
 import logging
 
@@ -16,7 +18,8 @@ class nuprod_product_template_zpl(models.Model):
         render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")
         datas = {
-            "render": render[0],
+            "render": base64.b64encode(render[0]).decode("ascii"),
+            "is_pdf": True,
             "ip_adress": "192.168.1.32",
             "client_id": client_id or False,
         }
@@ -37,7 +40,8 @@ class nuprod_product_product_zpl(models.Model):
         render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")
         datas = {
-            "render": render[0],
+            "render": base64.b64encode(render[0]).decode("ascii"),
+            "is_pdf": True,
             "ip_adress": "192.168.1.32",
             "client_id": client_id or False,
         }
