@@ -7,7 +7,7 @@
       <field name="model">product.product</field>
       <field name="inherit_id" ref="product.product_product_tree_view"/>
       <field name="arch" type="xml">
-        <xpath expr="//list" position="before">
+        <xpath expr="//list/field[1]" position="before">
           <header>
             <button string="Impression ZPL" class="oe_highlight" type="object" name="action_nuprod_print_product_zpl" />
           </header>
