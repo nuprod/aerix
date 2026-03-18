@@ -10,22 +10,18 @@ class nuprod_stock_location_zpl(models.Model):
     _inherit = "stock.location"
 
     def action_nuprod_print_location_zpl(self):
-        action = self.env.ref(
-            "stock.report_generic_barcode"
-        ).report_action(self.ids, config=False)
-        if action:
-            render = self.env["ir.actions.report"]._render(
-                action["report_name"],
-                self.ids,
-            )
-            client_id = self.env.context.get("client_id")
-            datas = {
-                "render": render[0],
-                "ip_adress": "192.168.1.32",
-                "client_id": client_id or False,
-            }
-            self.env["bus.bus"]._sendone(
-                "nuprod_print_browser",
-                "client_id_print_zpl",
-                datas,
-            )
+        render = self.env["ir.actions.report"]._render(
+            "stock.report_generic_barcode",
+            self.ids,
+        )
+        client_id = self.env.context.get("client_id")
+        datas = {
+            "render": render[0],
+            "ip_adress": "192.168.1.32",
+            "client_id": client_id or False,
+        }
+        self.env["bus.bus"]._sendone(
+            "nuprod_print_browser",
+            "client_id_print_zpl",
+            datas,
+        )
