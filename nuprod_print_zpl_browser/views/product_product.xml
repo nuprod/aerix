@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+
+    <record id="nuprod_product_zpl" model="ir.ui.view">
+      <field name="name">nuprod.printer.zpl.products</field>
+      <field name="model">product.product</field>
+      <field name="inherit_id" ref="product.product_product_tree_view"/>
+      <field name="arch" type="xml">
+        <xpath expr="//header" position='inside'>
+          <button string="Impression ZPL" class="oe_highlight" type="object" name="action_nuprod_print_product_zpl" />
+        </xpath>
+      </field>
+    </record>
+
+  </data>
+</odoo>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <template id="nuprod_production_template_zpl">
+            <t t-set="uom_categ_unit" t-value="env.ref('uom.product_uom_categ_unit')"/>
+            <t t-foreach="docs" t-as="production">
+                <t t-translation="off">
+                <t t-set="lineHeight" t-value="50"/>
+                <t t-set="display_name" t-value="''"/>
+                <t t-set="display_words" t-value=""/>
+                <t t-if="production.lot_producing_id">
+                    <t t-set="display_name" t-value="production.lot_producing_id.name"/>
+                    <t t-set="display_words" t-value="display_name.split(' ')"/>
+                </t>
+
+                ^XA^CI28
+                ^FO150,<t t-out="lineHeight"/>
+                ^A0N,44,33^FD<t t-esc="production.product_id.name"/>
+                ^FS
+                <t t-set="lineHeight" t-value="lineHeight + 50"/>
+                <t t-if="production.product_id.product_template_attribute_value_ids">
+                    ^FO150,<t t-out="lineHeight"/>
+                    ^A0N,44,33^FD<t t-out="production.product_id.product_template_attribute_value_ids._get_combination_name()"/>
+                    ^FS
+                    <t t-set="lineHeight" t-value="lineHeight + 50"/>
+                </t>
+                <t t-if="production.sale_order_id">
+                    ^FO150,<t t-out="lineHeight"/>
+                    ^A0N,44,33^FDClient: <t t-esc="production.sale_order_id.partner_id.display_name"/>
+                    ^FS
+                    <t t-set="lineHeight" t-value="lineHeight + 50"/>
+                </t>
+                <t t-if="display_name">
+                    <t t-if="len(display_words) > 1 and len(display_name) > 30">
+                        ^FO150,<t t-out="lineHeight" />
+                        ^A0N,44,33^FDPal: <t t-out="' '.join(display_words[:-1])" />
+                        ^FS <t t-set="lineHeight" t-value="lineHeight + 50" />
+                        ^FO150,<t t-out="lineHeight" />
+                        ^A0N,44,33^FD<t t-out="' '.join(display_words[-1:])" />
+                        ^FS
+                    </t>
+                    <t t-else="">
+                        ^FO150,<t t-out="lineHeight" />
+                        ^A0N,44,33^FDPal:<t t-esc="display_name" />
+                        ^FS
+                    </t>
+                    ^FO15,50^BY3
+                    ^FO15,50 ^BQN,2,4 ^FDMA,<t t-esc="production.lot_producing_id.name"/>^FS
+                </t>
+                <t t-else="">
+                    ^FO150,<t t-out="lineHeight"/>
+                    ^A0N,44,33^FDNo barcode available^FS
+                </t>
+                ^XZ
+                </t>
+            </t>
+</template>
+</data>
+</odoo>

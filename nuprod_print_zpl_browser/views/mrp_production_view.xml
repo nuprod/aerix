@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="nuprod_mrp_production_view_inherit" model="ir.ui.view">
+        <field name="name">nuprod.mrp.production.form.inherit</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_nuprod_print_mrp_zpl" string="Impression ZPL" class="oe_highlight" type="object"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="nuprod_mrp_production_tree_view_inherit" model="ir.ui.view">
+        <field name="name">nuprod.mrp.production.tree.inherit</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_tree_view" />
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_nuprod_print_mrp_zpl" string="Impression ZPL" class="oe_highlight" type="object"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

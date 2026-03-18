@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+
+    <record id="nuprod_print_zpl_view_quant_package_tree" model="ir.ui.view">
+      <field name="name">stock.quant.package.test.tree</field>
+      <field name="model">stock.quant.package</field>
+      <field name="inherit_id" ref="stock.view_quant_package_tree" />
+      <field name="arch" type="xml">
+        <xpath expr="//list" position="inside">
+          <header>
+            <button string="Impression ZPL" class="oe_highlight" type="object"
+              name="action_nuprod_print_package_zpl" />
+          </header>
+        </xpath>
+      </field>
+    </record>
+
+    <record id="nuprod_print_zpl_view_quant_package_form" model="ir.ui.view">
+      <field name="name">nuprod.print.zpl.view_quant.package.form</field>
+      <field name="model">stock.quant.package</field>
+      <field name="inherit_id" ref="stock.view_quant_package_form" />
+      <field name="arch" type="xml">
+        <xpath expr="//header" position="inside">
+          <button string="Impression ZPL" class="oe_highlight" type="object"
+            name="action_nuprod_print_package_zpl" />
+        </xpath>
+      </field>
+    </record>
+
+
+  </data>
+</odoo>

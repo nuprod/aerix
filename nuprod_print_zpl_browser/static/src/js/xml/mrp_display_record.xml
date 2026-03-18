@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-inherit="mrp_workorder.MrpDisplayWorkorderFooter" t-inherit-mode="extension">
+        <xpath expr="//button[@t-if='displayDoneButton']" position="after">
+            <button t-if="displayPrintButton" class="btn btn-light active ms-4" t-on-click="onClickSendPrintingJob">
+            Impression ZPL
+            </button>
+        </xpath>
+
+    </t>
+
+</templates>

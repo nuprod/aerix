@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="nuprod_mrp_workcenter_view_inherit" model="ir.ui.view">
+        <field name="name">nuprod.mrp.workcenter.form.inherit</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='alternative_workcenter_ids']" position="after">
+                <field name="mrp_report_id" />
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

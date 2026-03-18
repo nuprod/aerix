@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <record id="nuprod_package_zpl_report" model="ir.actions.report">
+            <field name="name">Nuprod Package (ZPL)</field>
+            <field name="model">stock.quant.package</field>
+            <field name="report_type">qweb-text</field>
+            <field name="report_name">nuprod_print_zpl_browser.nuprod_package_template_zpl</field>
+            <field name="binding_model_id" ref="stock.model_stock_quant_package" />
+            <field name="binding_type">report</field>
+        </record>
+
+        <record id="nuprod_quant_zpl_report" model="ir.actions.report">
+            <field name="name">Nuprod Quant (ZPL)</field>
+            <field name="model">stock.quant</field>
+            <field name="report_type">qweb-text</field>
+            <field name="report_name">nuprod_print_zpl_browser.nuprod_quant_template_zpl</field>
+            <field name="binding_model_id" ref="stock.model_stock_quant" />
+            <field name="binding_type">report</field>
+        </record>
+
+        <record id="nuprod_production_zpl_report" model="ir.actions.report">
+            <field name="name">Nuprod Production (ZPL)</field>
+            <field name="model">mrp.production</field>
+            <field name="report_type">qweb-text</field>
+            <field name="report_name">nuprod_print_zpl_browser.nuprod_production_template_zpl</field>
+            <field name="binding_model_id" ref="mrp.model_mrp_production" />
+            <field name="binding_type">report</field>
+        </record>
+
+        <record id="nuprod_lot_zpl_report" model="ir.actions.report">
+            <field name="name">Nuprod Lot/Serial Number (ZPL)</field>
+            <field name="model">stock.lot</field>
+            <field name="report_type">qweb-text</field>
+            <field name="report_name">nuprod_print_zpl_browser.nuprod_lot_template_zpl</field>
+            <field name="binding_model_id" ref="stock.model_stock_lot" />
+            <field name="binding_type">report</field>
+        </record>
+
+    </data>
+</odoo>

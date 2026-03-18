@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <template id="nuprod_quant_template_zpl">
+            <t t-foreach="docs" t-as="quant">
+                <t t-translation="off">
+                <t t-set="lineHeight" t-value="50"/>
+                <t t-set="barcode" t-value="lineHeight + 100"/>
+                <t t-set="display_name" t-value="''"/>
+                <t t-set="display_words" t-value=""/>
+                <t t-set="quantity_position" t-value="150"/>
+                <t t-set="split_name_index" t-value="-1"/>
+                <t t-if="quant.package_id">
+                    <t t-set="display_name" t-value="quant.package_id.name"/>
+                    <t t-set="display_words" t-value="quant.package_id.name.split(' ')"/>
+                </t>
+                <t t-elif="quant.lot_id">
+                    <t t-set="display_name" t-value="quant.lot_id.name"/>
+                    <t t-set="display_words" t-value="quant.lot_id.name.split(' ')"/>
+                </t>
+                <t t-if="display_name and 'rebut' in display_name.lower()">
+                    <t t-set="split_name_index" t-value="-2"/>
+                </t>
+
+                ^XA^CI28
+                <t t-if="quant.lot_id">
+                    ^FO150,<t t-out="lineHeight"/>
+                    ^A0N,44,33^FDProduit: <t t-out="quant.lot_id.product_id.display_name"/>^FS
+                    <t t-set="lineHeight" t-value="lineHeight + 50"/>
+                </t>
+                ^FO150,<t t-out="lineHeight"/>
+                <t t-if="display_name">
+                    <t t-if="len(display_words) > 1 and len(display_name) > 30">
+                        ^FO150,<t t-out="lineHeight" />
+                        ^A0N,44,33^FDPal: <t t-out="' '.join(display_words[:split_name_index])" />
+                        ^FS <t t-set="lineHeight" t-value="lineHeight + 50" />
+                        ^FO150,<t t-out="lineHeight" />
+                        ^A0N,44,33^FD<t t-out="' '.join(display_words[split_name_index:])" />
+                        ^FS
+                    </t>
+                    <t t-else="">
+                        ^FO150,<t t-out="lineHeight" />
+                        ^A0N,44,33^FDPal:<t t-esc="display_name" />
+                        ^FS
+                    </t>
+                    <t t-set="lineHeight" t-value="lineHeight + 50"/>
+                </t>
+                <t t-if="quant.package_id and quant.package_id.pack_date">
+                    ^FO150,<t t-out="lineHeight" />
+                    ^A0N,44,33^FDDate: <t t-out="quant.package_id.pack_date" t-options='{"widget": "date"}'/>
+                    ^FS
+                    <t t-set="quantity_position" t-value="400"/>
+                </t>
+                <t t-if="quant.lot_id">
+                    ^FO<t t-out="quantity_position"/>,<t t-out="lineHeight"/>
+                    ^A0N,44,33^FDQuantite: <t t-out="quant.quantity"/> <t t-out="quant.lot_id.product_uom_id.name"/>^FS
+                </t>
+                ^FO15,50 ^BQN,2,4 ^FDMA,<t t-out="display_name"/>^FS
+                ^XZ
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>
