@@ -23,7 +23,9 @@
         "report/nuprod_zpl_production_template.xml",
         "report/nuprod_zpl_lot_template.xml",
         "views/stock_quant_view.xml",
-        "report/nuprod_zpl_quant_template.xml"
+        "report/nuprod_zpl_quant_template.xml",
+        "views/stock_location_view.xml",
+        "report/nuprod_zpl_location_template.xml"
     ],
     "assets": {
         "web.assets_backend": [

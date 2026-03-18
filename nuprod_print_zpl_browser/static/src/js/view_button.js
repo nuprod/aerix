@@ -2,8 +2,6 @@
 
 import { patch } from "@web/core/utils/patch";
 import { ViewButton } from "@web/views/view_button/view_button";
-import { uuid } from "@web/core/utils/uuid";
-
 import { onMounted } from "@odoo/owl";
 
 patch(ViewButton.prototype, {
@@ -13,7 +11,7 @@ patch(ViewButton.prototype, {
 			let sessionStorage = window.sessionStorage;
 			let clientId = sessionStorage.getItem("client_id");
 			if (!clientId) {
-				sessionStorage.setItem("client_id", uuid());
+				sessionStorage.setItem("client_id", crypto.randomUUID());
 				clientId = sessionStorage.getItem("client_id");
 			}
 			if ("record" in this.props && "context" in this.props.record) {

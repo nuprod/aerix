@@ -38,5 +38,14 @@
             <field name="binding_type">report</field>
         </record>
 
+        <record id="nuprod_location_zpl_report" model="ir.actions.report">
+            <field name="name">Nuprod Location (ZPL)</field>
+            <field name="model">stock.location</field>
+            <field name="report_type">qweb-text</field>
+            <field name="report_name">nuprod_print_zpl_browser.nuprod_location_template_zpl</field>
+            <field name="binding_model_id" ref="stock.model_stock_location" />
+            <field name="binding_type">report</field>
+        </record>
+
     </data>
 </odoo>

@@ -7,3 +7,4 @@ from . import mrp_workcenter
 from . import mrp_workorder
 from . import stock_lot
 from . import stock_picking
+from . import stock_location

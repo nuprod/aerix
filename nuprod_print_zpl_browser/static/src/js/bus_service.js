@@ -1,6 +1,5 @@
 /** @odoo-module **/
 import { registry } from "@web/core/registry";
-import { uuid } from "@web/core/utils/uuid";
 
 const printZPLService = {
   dependencies: ["bus_service"],
@@ -8,7 +7,7 @@ const printZPLService = {
   start(env, { bus_service }) {
     let clientId = window.sessionStorage.getItem("client_id");
     if (!clientId) {
-      clientId = uuid();
+      clientId = crypto.randomUUID();
       window.sessionStorage.setItem("client_id", clientId);
     }
     console.log("Client ID:", clientId);

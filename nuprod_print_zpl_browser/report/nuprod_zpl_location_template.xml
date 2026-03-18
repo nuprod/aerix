@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <template id="nuprod_location_template_zpl">
+            <t t-foreach="docs" t-as="location">
+                <t t-translation="off">
+                    <t t-set="loc_name" t-value="location.name"/>
+                    <t t-set="loc_complete" t-value="location.complete_name"/>
+                    <t t-set="loc_barcode" t-value="location.barcode or loc_complete"/>
+                    <t t-set="lineHeight" t-value="30"/>
+                    ^XA^CI28
+                    ^FO150,<t t-out="lineHeight"/>
+                    ^A0N,44,33^FD<t t-out="loc_name"/>
+                    ^FS
+                    <t t-set="lineHeight" t-value="lineHeight + 50"/>
+                    ^FO150,<t t-out="lineHeight"/>
+                    ^A0N,30,25^FD<t t-out="loc_complete"/>
+                    ^FS
+                    ^FO15,30^BY3
+                    ^FO15,50^BQN,2,4^FDMA,<t t-out="loc_barcode"/>^FS
+                    ^XZ
+                </t>
+            </t>
+        </template>
+    </data>
+</odoo>

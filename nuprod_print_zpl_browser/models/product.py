@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-import base64
 
-from odoo import models, fields, api
+from odoo import models
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -11,20 +10,13 @@ class nuprod_product_template_zpl(models.Model):
     _inherit = "product.template"
 
     def action_nuprod_print_product_zpl(self):
-        layout = self.env["product.label.layout"].create(
-            {
-                "print_format": "zpl",
-                "custom_quantity": 1,
-                "product_tmpl_ids": self.ids,
-            }
-        )
-        layout_data = layout.process()
-
-        if layout_data:
+        action = self.env.ref(
+            "product.report_productlabel_dymo"
+        ).report_action(self.ids, config=False)
+        if action:
             render = self.env["ir.actions.report"]._render(
-                layout_data["report_name"],
+                action["report_name"],
                 self.ids,
-                layout_data["data"],
             )
             client_id = self.env.context.get("client_id")
             datas = {
@@ -43,20 +35,13 @@ class nuprod_product_product_zpl(models.Model):
     _inherit = "product.product"
 
     def action_nuprod_print_product_zpl(self):
-        layout = self.env["product.label.layout"].create(
-            {
-                "print_format": "zpl",
-                "custom_quantity": 1,
-                "product_ids": self.ids,
-            }
-        )
-        layout_data = layout.process()
-
-        if layout_data:
+        action = self.env.ref(
+            "product.report_productlabel_dymo"
+        ).report_action(self.ids, config=False)
+        if action:
             render = self.env["ir.actions.report"]._render(
-                layout_data["report_name"],
+                action["report_name"],
                 self.ids,
-                layout_data["data"],
             )
             client_id = self.env.context.get("client_id")
             datas = {
