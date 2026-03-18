@@ -11,7 +11,7 @@ class nuprod_product_template_zpl(models.Model):
 
     def action_nuprod_print_product_zpl(self):
         report = self.env["ir.actions.report"].search(
-            [("report_name", "=", "product.report_productlabel_dymo")], limit=1
+            [("report_name", "=", "product.report_producttemplatelabel_dymo")], limit=1
         )
         render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")
@@ -32,7 +32,7 @@ class nuprod_product_product_zpl(models.Model):
 
     def action_nuprod_print_product_zpl(self):
         report = self.env["ir.actions.report"].search(
-            [("report_name", "=", "product.report_productlabel_dymo")], limit=1
+            [("report_name", "=", "product.report_producttemplatelabel_dymo")], limit=1
         )
         render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")

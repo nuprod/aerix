@@ -11,7 +11,7 @@ class nuprod_stock_location_zpl(models.Model):
 
     def action_nuprod_print_location_zpl(self):
         report = self.env["ir.actions.report"].search(
-            [("report_name", "=", "stock.report_generic_barcode")], limit=1
+            [("report_name", "=", "stock.report_location_barcode")], limit=1
         )
         render = self.env["ir.actions.report"]._render(report, self.ids)
         client_id = self.env.context.get("client_id")
