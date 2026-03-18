@@ -7,7 +7,7 @@ _logger = logging.getLogger(__name__)
 
 
 class nuprod_stock_package_zpl(models.Model):
-    _inherit = "stock.quant.package"
+    _inherit = "stock.package"
 
     def action_nuprod_print_package_zpl(self):
         action = self.env.ref(
@@ -29,6 +29,7 @@ class nuprod_stock_package_zpl(models.Model):
                 "client_id_print_zpl",
                 datas,
             )
+
 
 class nuprod_stock_quant_zpl(models.Model):
     _inherit = "stock.quant"

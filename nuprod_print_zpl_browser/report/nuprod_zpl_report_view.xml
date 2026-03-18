@@ -4,10 +4,10 @@
 
         <record id="nuprod_package_zpl_report" model="ir.actions.report">
             <field name="name">Nuprod Package (ZPL)</field>
-            <field name="model">stock.quant.package</field>
+            <field name="model">stock.package</field>
             <field name="report_type">qweb-text</field>
             <field name="report_name">nuprod_print_zpl_browser.nuprod_package_template_zpl</field>
-            <field name="binding_model_id" ref="stock.model_stock_quant_package" />
+            <field name="binding_model_id" ref="stock.model_stock_package" />
             <field name="binding_type">report</field>
         </record>
 
