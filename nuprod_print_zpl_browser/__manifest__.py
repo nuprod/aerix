@@ -22,6 +22,7 @@
         "report/nuprod_zpl_package_template.xml",
         "report/nuprod_zpl_production_template.xml",
         "report/nuprod_zpl_lot_template.xml",
+        "report/nuprod_zpl_product_template.xml",
         "views/stock_quant_view.xml",
         "report/nuprod_zpl_quant_template.xml",
         "views/stock_location_view.xml",

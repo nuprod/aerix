@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+<data>
+<template id="report_nuprod_product_label_zpl">
+<t t-foreach="docs" t-as="product"><t t-translation="off">^XA^CI28^PW456^LL256^FO10,10^FB430,3,0,L^A0N,30,28^FD<t t-esc="product.name"/>^FS^FO10,100^A0N,25,23^FD<t t-esc="product.default_code or ''"/>^FS^FO300,100^A0N,25,23^FD<t t-esc="'%.2f' % (product.list_price,)"/> EUR^FS^XZ</t></t>
+</template>
+</data>
+</odoo>

@@ -2,6 +2,24 @@
 <odoo>
     <data>
 
+    <record id="nuprod_product_template_zpl" model="ir.actions.report">
+        <field name="name">Product Template Label ZPL</field>
+        <field name="model">product.template</field>
+        <field name="report_type">qweb-text</field>
+        <field name="report_name">nuprod_print_zpl_browser.report_nuprod_product_label_zpl</field>
+        <field name="binding_model_id" ref="stock.model_product_template" />
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="nuprod_product_product_zpl" model="ir.actions.report">
+        <field name="name">Product Product Label ZPL</field>
+        <field name="model">product.product</field>
+        <field name="report_type">qweb-text</field>
+        <field name="report_name">nuprod_print_zpl_browser.report_nuprod_product_label_zpl</field>
+        <field name="binding_model_id" ref="stock.model_product_product" />
+        <field name="binding_type">report</field>
+    </record>
+
         <record id="nuprod_package_zpl_report" model="ir.actions.report">
             <field name="name">Nuprod Package (ZPL)</field>
             <field name="model">stock.package</field>

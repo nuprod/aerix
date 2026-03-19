@@ -12,41 +12,80 @@ class nuprod_product_template_zpl(models.Model):
     _inherit = "product.template"
 
     def action_nuprod_print_product_zpl(self):
-        report = self.env["ir.actions.report"].search(
-            [("report_name", "=", "product.report_producttemplatelabel_dymo")], limit=1
-        )
-        render = self.env["ir.actions.report"]._render(report, self.ids)
-        client_id = self.env.context.get("client_id")
-        datas = {
-            "render": base64.b64encode(render[0]).decode("ascii"),
-            "is_pdf": True,
-            "ip_adress": "192.168.1.32",
-            "client_id": client_id or False,
-        }
-        self.env["bus.bus"]._sendone(
-            "nuprod_print_browser",
-            "client_id_print_zpl",
-            datas,
-        )
+        layout = self.env["product.label.layout"].create({
+            "print_format": "zpl",
+            "custom_quantity": 1,
+            "product_tmpl_ids": self.ids,
+        })
+        layout_data = layout.process()
+
+        if layout_data:
+            layout_data["report_name"] = "nuprod_print_zpl_browser.report_nuprod_product_label_zpl"
+
+            render = self.env["ir.actions.report"]._render(
+                layout_data["report_name"],
+                self.ids,
+                layout_data["data"],
+            )
+
+            try:
+                render_str = render[0].decode('utf-8').strip().replace('\n', '').replace('\r', '')
+            except UnicodeDecodeError:
+                render_str = render[0].decode('latin-1').strip().replace('\n', '').replace('\r', '')
+
+            client_id = self.env.context.get("client_id", "BROADCAST")
+
+            datas = {
+                "render": render_str,
+                "ip_address": "192.168.1.70",
+                "client_id": client_id,
+                "is_pdf": False,
+            }
+
+            self.env["bus.bus"]._sendone(
+                "nuprod_print_browser",
+                "nuprod_print_browser",
+                datas,
+            )
+
 
 
 class nuprod_product_product_zpl(models.Model):
     _inherit = "product.product"
 
     def action_nuprod_print_product_zpl(self):
-        report = self.env["ir.actions.report"].search(
-            [("report_name", "=", "product.report_producttemplatelabel_dymo")], limit=1
-        )
-        render = self.env["ir.actions.report"]._render(report, self.ids)
-        client_id = self.env.context.get("client_id")
-        datas = {
-            "render": base64.b64encode(render[0]).decode("ascii"),
-            "is_pdf": True,
-            "ip_adress": "192.168.1.32",
-            "client_id": client_id or False,
-        }
-        self.env["bus.bus"]._sendone(
-            "nuprod_print_browser",
-            "client_id_print_zpl",
-            datas,
-        )
+        layout = self.env["product.label.layout"].create({
+            "print_format": "zpl",
+            "custom_quantity": 1,
+            "product_tmpl_ids": self.ids,
+        })
+        layout_data = layout.process()
+
+        if layout_data:
+            layout_data["report_name"] = "nuprod_print_zpl_browser.report_nuprod_product_label_zpl"
+
+            render = self.env["ir.actions.report"]._render(
+                layout_data["report_name"],
+                self.ids,
+                layout_data["data"],
+            )
+
+            try:
+                render_str = render[0].decode('utf-8').strip().replace('\n', '').replace('\r', '')
+            except UnicodeDecodeError:
+                render_str = render[0].decode('latin-1').strip().replace('\n', '').replace('\r', '')
+
+            client_id = self.env.context.get("client_id", "BROADCAST")
+
+            datas = {
+                "render": render_str,
+                "ip_address": "192.168.1.70",
+                "client_id": client_id,
+                "is_pdf": False,
+            }
+
+            self.env["bus.bus"]._sendone(
+                "nuprod_print_browser",
+                "nuprod_print_browser",
+                datas,
+            )

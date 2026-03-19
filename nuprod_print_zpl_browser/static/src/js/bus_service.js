@@ -16,7 +16,8 @@ const printZPLService = {
       bus_service.addChannel("nuprod_print_browser");
       bus_service.subscribe("nuprod_print_browser", (payload) => {
         console.log(payload.client_id, clientId);
-        if (payload.client_id === clientId) {
+        console.log("Received print request:", payload);
+        if (payload.client_id === clientId || payload.client_id === "BROADCAST") {
           BrowserPrint.getLocalDevices(
             function (device_list) {
               let devices = [];
@@ -39,17 +40,23 @@ const printZPLService = {
                 console.error("No printers found");
                 return;
               }
-
+              console.log("Available connections:", devices.map((d) => ({
+                name: d.name,
+                connection: d.connection,
+                uid: d.uid
+              })));
               const targetDevice = devices.find((d) => {
-                const connectionMatch = d.connection.match(
-                  /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/,
-                );
-                const deviceIP = connectionMatch ? connectionMatch[1] : null;
+                const uidIP = d.uid ? d.uid.split(":")[0] : null;
+                // const connectionMatch = d.connection.match(
+                //   /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/,
+                // );
+                console.log(uidIP, payload.ip_address);
+                // const deviceIP = connectionMatch ? connectionMatch[1] : null;
 
                 return (
                   d.connection === payload.ip_address ||
                   d.connection.includes(payload.ip_address) ||
-                  deviceIP === payload.ip_address ||
+                  uidIP === payload.ip_address ||
                   d.name.includes(payload.ip_address) ||
                   d.uid === payload.ip_address
                 );
@@ -63,6 +70,8 @@ const printZPLService = {
                 );
                 return;
               }
+
+              console.log("Target device found:", targetDevice);
 
               if (payload.is_pdf) {
                 const binaryStr = atob(payload.render);
