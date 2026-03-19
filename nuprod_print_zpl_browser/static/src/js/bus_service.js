@@ -45,6 +45,9 @@ const printZPLService = {
                 connection: d.connection,
                 uid: d.uid
               })));
+              devices = devices.filter((d, index, self) =>
+                index === self.findIndex((t) => t.uid === d.uid)
+              );
               const targetDevice = devices.find((d) => {
                 const uidIP = d.uid ? d.uid.split(":")[0] : null;
                 // const connectionMatch = d.connection.match(
