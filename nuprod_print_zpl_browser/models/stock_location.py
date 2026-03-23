@@ -12,19 +12,30 @@ class nuprod_stock_location_zpl(models.Model):
     _inherit = "stock.location"
 
     def action_nuprod_print_location_zpl(self):
-        report = self.env["ir.actions.report"].search(
-            [("report_name", "=", "stock.report_location_barcode")], limit=1
+        report_name = "nuprod_print_zpl_browser.report_nuprod_location_label_zpl"
+
+        render = self.env["ir.actions.report"]._render(
+            report_name,
+            self.ids,
+            {},
         )
-        render = self.env["ir.actions.report"]._render(report, self.ids)
-        client_id = self.env.context.get("client_id")
+
+        try:
+            render_str = render[0].decode('utf-8').strip().replace('\n', '').replace('\r', '')
+        except UnicodeDecodeError:
+            render_str = render[0].decode('latin-1').strip().replace('\n', '').replace('\r', '')
+
+        client_id = self.env.context.get("client_id", "BROADCAST")
         datas = {
-            "render": base64.b64encode(render[0]).decode("ascii"),
-            "is_pdf": True,
-            "ip_adress": "192.168.1.32",
-            "client_id": client_id or False,
+            "render": render_str,
+            "ip_address": "192.168.1.70",
+            "client_id": client_id,
+            "is_pdf": False,
         }
+
+        _logger.error(render_str)
         self.env["bus.bus"]._sendone(
             "nuprod_print_browser",
-            "client_id_print_zpl",
+            "nuprod_print_browser",
             datas,
         )
