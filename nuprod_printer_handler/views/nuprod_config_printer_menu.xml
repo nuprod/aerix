@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="nuprod_config_printer_action" model="ir.actions.act_window">
+    <field name="name">nuprod.config.printer.action</field>
+    <field name="res_model">nuprod.config.printer</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+  <record id="nuprod_config_raspberry_action" model="ir.actions.act_window">
+    <field name="name">nuprod.config.raspberry.action</field>
+    <field name="res_model">nuprod.config.raspberry</field>
+    <field name="view_mode">list,form</field>
+  </record>
+
+  <menuitem id="nuprod_print_menu_root" name="Nuprod Imprimante" sequence="10"
+    web_icon="nuprod_printer_handler,static/description/icon.png" />
+  <menuitem id="nuprod_config_printer_menu" name="Imprimantes"
+    parent="nuprod_print_menu_root" action="nuprod_config_printer_action" sequence="1" />
+  <menuitem id="nuprod_config_raspberry_menu" name="Raspberry"
+    parent="nuprod_print_menu_root" action="nuprod_config_raspberry_action" sequence="2" />
+
+</odoo>

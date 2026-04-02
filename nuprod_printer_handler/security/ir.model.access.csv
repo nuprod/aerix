@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+nuprod_printer_handler.access_nuprod_config_printer,access_nuprod_config_printer,nuprod_printer_handler.model_nuprod_config_printer,base.group_user,1,1,1,1
+nuprod_printer_handler.access_nuprod_config_raspberry,access_nuprod_config_raspberry,nuprod_printer_handler.model_nuprod_config_raspberry,base.group_user,1,1,1,1
+nuprod_printer_handler.access_nuprod_place,access_nuprod_place,nuprod_printer_handler.model_nuprod_place,base.group_user,1,1,1,1

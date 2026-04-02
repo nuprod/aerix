@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <record id="nuprod_config_raspberry_list" model="ir.ui.view">
+    <field name="name">nuprod.config.raspberry.list</field>
+    <field name="model">nuprod.config.raspberry</field>
+    <field name="arch" type="xml">
+      <list string="Paramètres">
+        <field name="name" />
+        <field name="ip_address" />
+        <field name="port" />
+        <field name="description" />
+        <field name="is_active" widget="boolean_toggle" />
+        <field name="use_for_printer" widget="boolean_toggle" />
+        <field name="is_printer_server"></field>
+      </list>
+    </field>
+  </record>
+
+  <record id="nuprod_config_raspberry_form" model="ir.ui.view">
+    <field name="name">nuprod.config.raspberry.form</field>
+    <field name="model">nuprod.config.raspberry</field>
+    <field name="arch" type="xml">
+      <form string="Propriétés">
+        <sheet>
+          <!-- Titre -->
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+
+          <!-- Informations principales -->
+          <group string="Connexion">
+            <group>
+              <field name="ip_address" />
+              <field name="port" />
+              <field name="is_printer_server" />
+            </group>
+          </group>
+
+          <!-- Descriptions -->
+          <group string="Description">
+            <group>
+              <field name="description" />
+            </group>
+          </group>
+
+          <group string="Fonctionnement">
+            <field name="is_active" />
+            <field name="use_for_printer" />
+          </group>
+
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+</odoo>
