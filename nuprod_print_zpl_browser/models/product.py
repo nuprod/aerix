@@ -19,6 +19,12 @@ class nuprod_product_template_zpl(models.Model):
         })
         layout_data = layout.process()
 
+        printers = self.env["nuprod.config.printer"].search([("is_active", "=", True), ("label_type", "=", "zpl")], limit=1)
+        if not printers:
+            raise UserError("Veuillez configurer une imprimante ZPL active.")
+
+        printer = printers[0]
+
         if layout_data:
             layout_data["report_name"] = "nuprod_print_zpl_browser.report_nuprod_product_label_zpl"
 
@@ -37,9 +43,10 @@ class nuprod_product_template_zpl(models.Model):
 
             datas = {
                 "render": render_str,
-                "ip_address": "192.168.1.70",
+                "ip_address": printer.ip_address if printer.network_type == "ip" else None,
                 "client_id": client_id,
                 "is_pdf": False,
+                "connection_type": printer.network_type,
             }
 
             self.env["bus.bus"]._sendone(

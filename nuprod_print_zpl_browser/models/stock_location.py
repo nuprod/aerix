@@ -3,6 +3,7 @@
 import base64
 
 from odoo import models
+from odoo.exceptions import UserError
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -13,6 +14,11 @@ class nuprod_stock_location_zpl(models.Model):
 
     def action_nuprod_print_location_zpl(self):
         report_name = "nuprod_print_zpl_browser.report_nuprod_location_label_zpl"
+        printers = self.env["nuprod.config.printer"].search([("is_active", "=", True), ("label_type", "=", "zpl")], limit=1)
+        if not printers:
+            raise UserError("Veuillez configurer une imprimante ZPL active.")
+
+        printer = printers[0]
 
         render = self.env["ir.actions.report"]._render(
             report_name,
@@ -28,9 +34,10 @@ class nuprod_stock_location_zpl(models.Model):
         client_id = self.env.context.get("client_id", "BROADCAST")
         datas = {
             "render": render_str,
-            "ip_address": "192.168.1.70",
             "client_id": client_id,
             "is_pdf": False,
+            "connection_type": printer.network_type,
+            "ip_address": printer.ip_address if printer.network_type == "ip" else None,
         }
 
         _logger.error(render_str)

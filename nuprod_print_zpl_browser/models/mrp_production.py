@@ -23,7 +23,7 @@ class nuprod_stock_package_zpl(models.Model):
         )
         datas = {
             "render": render[0],
-            "ip_adress": "192.168.1.32",
+            "ip_address": "192.168.1.32",
             "client_id": client_id or False,
         }
         self.env["bus.bus"]._sendone(
