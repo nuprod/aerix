@@ -2,7 +2,7 @@
 <odoo>
 <data>
 <template id="report_nuprod_product_label_zpl">
-<t t-foreach="docs" t-as="product"><t t-translation="off">^XA^CI28^PW568^LL408^FO10,10^FB548,4,0,C^A0N,45,43^FD<t t-esc="product.name"/>^FS^FO10,130^FB548,2,0,C^A0N,32,30^FD<t t-esc="product.default_code or ''"/>^FS<t t-if="product.barcode">^FO40,175^BY4^BCN,150,N,N,N^FD<t t-esc="product.barcode"/>^FS</t>^XZ</t></t>
+<t t-foreach="docs" t-as="product"><t t-translation="off">^XA^CI28^PW568^LL408^FO10,10^FB548,4,0,C^A0N,45,43^FD<t t-esc="product.name"/>^FS^FO10,130^FB548,2,0,C^A0N,32,30^FD<t t-esc="product.default_code or ''"/>^FS<t t-if="product.barcode">^FO40,175^BY2^BCN,150,N,N,N^FD<t t-esc="product.barcode"/>^FS</t>^XZ</t></t>
 </template>
 </data>
 </odoo>
