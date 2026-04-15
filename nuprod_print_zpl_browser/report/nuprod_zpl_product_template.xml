@@ -23,9 +23,7 @@
     <t t-set="bc_width" t-value="(11 * bc_len + 35) * bc_mod"/>
     <t t-set="bc_x" t-value="max(10, int((568 - bc_width) / 2))"/>
         ^FO<t t-out="bc_x"/>,175^BY<t t-out="bc_mod"/>^BCN,150,N,N,N
-        ^FD<t t-esc="product.barcode"/>
-    ^FS</t>
-    ^XZ</t>
+        ^FD<t t-esc="product.barcode"/>^FS</t>^XZ</t>
 </t>
 </template>
 </data>
