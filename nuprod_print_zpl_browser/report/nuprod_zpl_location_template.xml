@@ -4,26 +4,9 @@
     <data>
         <template id="report_nuprod_location_label_zpl">
             <t t-foreach="docs" t-as="location">
-                <t t-if="location.barcode" t-translation="off">
-                ^XA
-                ^CI28
-                ^PW812
-                ^LL609
-                ^FO35,40
-                ^FB772,1,0,C
-                ^A0N,80,78
-                ^FD<t t-esc="location.barcode"/>
-                ^FS
-    <t t-set="bc_len" t-value="len(location.barcode)"/>
-    <t t-set="bc_mod" t-value="3 if bc_len &lt;= 14 else (2 if bc_len &lt;= 22 else 1)"/>
-    <t t-set="bc_width" t-value="(11 * bc_len + 35) * bc_mod"/>
-    <t t-set="bc_x" t-value="max(10, int((812 - bc_width) / 2))"/>
-                ^FO<t t-out="bc_x"/>,150
-                ^BY<t t-out="bc_mod"/>
-                ^BCN,220,N,N,N
-                ^FD<t t-esc="location.barcode"/>
-                ^FS
-                ^XZ</t>
+                <t t-if="location.barcode" t-translation="off"><t t-set="bc_len" t-value="len(location.barcode)"/><t t-set="bc_mod" t-value="3 if bc_len &lt;= 14 else (2 if bc_len &lt;= 22 else 1)"/><t t-set="bc_width" t-value="(11 * bc_len + 35) * bc_mod"/><t t-set="bc_x" t-value="max(10, int((812 - bc_width) // 2))"/>^XA^CI28^PW812^LL609^FO35,40^FB772,1,0,C^A0N,80,78^FD<t t-esc="location.barcode"/>
+^FS^FO<t t-out="bc_x"/>,150^BY<t t-out="bc_mod"/>^BCN,220,N,N,N^FD<t t-esc="location.barcode"/>
+^FS^XZ</t>
         </t>
     </template>
 </data>
