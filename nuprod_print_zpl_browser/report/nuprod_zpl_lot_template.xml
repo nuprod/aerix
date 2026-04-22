@@ -16,7 +16,7 @@
     ^FO10,130
     ^FB548,2,0,C
     ^A0N,32,30
-    ^FD<t t-esc="product_id.default_code or ''"/>
+    ^FD<t t-esc="lot.product_id.default_code or ''"/>
     ^FS<t t-if="lot.name">
     <t t-set="bc_len" t-value="len(lot.name)"/>
     <t t-set="bc_mod" t-value="2 if bc_len &lt;= 20 else 1"/>
