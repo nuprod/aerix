@@ -8,7 +8,6 @@
 ^FS^FO<t t-out="bc_x"/>,150^BY<t t-out="bc_mod"/>^BCN,220,N,N,N^FD<t t-esc="location.barcode"/>
 ^FS^XZ</t>
         </t>
-    </t>
     </template>
 </data>
 </odoo>
