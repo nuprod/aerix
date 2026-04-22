@@ -8,12 +8,12 @@
     ^CI28
     ^PW568
     ^LL408
-    ^FO10,10
+    ^FO10,50
     ^FB548,4,0,C
     ^A0N,45,43
     ^FD<t t-esc="product.name"/>
     ^FS
-    ^FO10,130
+    ^FO10,150
     ^FB548,2,0,C
     ^A0N,32,30
     ^FD<t t-esc="product.default_code or ''"/>
@@ -22,7 +22,7 @@
     <t t-set="bc_mod" t-value="2 if bc_len &lt;= 20 else 1"/>
     <t t-set="bc_width" t-value="(11 * bc_len + 35) * bc_mod"/>
     <t t-set="bc_x" t-value="max(10, int((568 - bc_width) / 2))"/>
-        ^FO<t t-out="bc_x"/>,175^BY<t t-out="bc_mod"/>^BCN,150,N,N,N
+        ^FO<t t-out="bc_x"/>,195^BY<t t-out="bc_mod"/>^BCN,150,N,N,N
         ^FD<t t-esc="product.barcode"/>
     ^FS</t>
     ^XZ</t>

@@ -8,7 +8,7 @@
     ^CI28
     ^PW568
     ^LL408
-    ^FO10,10
+    ^FO10,50
     ^FB548,4,0,C
     ^A0N,45,43
     ^FD<t t-esc="lot.name"/>
