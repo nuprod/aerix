@@ -11,7 +11,7 @@ class nuprod_stock_lot_zpl(models.Model):
     _inherit = "stock.lot"
 
     def action_nuprod_print_lot_zpl(self):
-        report_name = "nuprod_print_zpl_browser.nuprod_lot_template_zpl"
+        report_name = "nuprod_print_zpl_browser.report_nuprod_lot_label_zpl"
         printers = self.env["nuprod.config.printer"].search([("is_active", "=", True), ("label_type", "=", "zpl")], limit=1)
         if not printers:
             raise UserError("Veuillez configurer une imprimante ZPL active.")
