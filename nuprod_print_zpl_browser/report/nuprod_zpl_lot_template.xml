@@ -1,42 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <data>
-        <template id="nuprod_lot_template_zpl">
+        <template id="report_nuprod_lot_label_zpl">
             <t t-foreach="docs" t-as="lot">
                 <t t-translation="off">
-                    <t t-set="lot_name" t-value="lot.name"/>
-                    <t t-set="lot_words" t-value="lot_name.split(' ')"/>
-                    <t t-set="lineHeight" t-value="30"/>
-                    ^XA^CI28
-                    ^FO150,<t t-out="lineHeight"/>
-                    ^A0N,44,33^FD<t t-out="lot.product_id.name"/>
-                    ^FS
-                    <t t-set="lineHeight" t-value="lineHeight + 50"/>
-                    <t t-if="lot.product_id.product_template_attribute_value_ids">
-                        ^FO150,<t t-out="lineHeight"/>
-                        ^A0N,44,33^FD<t t-out="lot.product_id.product_template_attribute_value_ids._get_combination_name()"/>
-                        ^FS
-                        <t t-set="lineHeight" t-value="lineHeight + 50"/>
-                    </t>
-                    <t t-if="len(lot_words) > 1 and len(lot_name) > 30">
-                        ^FO150,<t t-out="lineHeight" />
-                        ^A0N,44,33^FDPal:<t t-out="' '.join(lot_words[:-1])" />
-                        ^FS <t t-set="lineHeight" t-value="lineHeight + 50" />
-                        ^FO150,<t t-out="lineHeight" />
-                        ^A0N,44,33^FD<t t-out="lot_words[-1:][0]" />
-                        ^FS
-                    </t>
-                    <t t-else="">
-                        ^FO150,<t t-out="lineHeight" />
-                        ^A0N,44,33^FDPal:<t t-esc="lot_name" />
-                        ^FS
-                    </t>
-                    ^FO15,30^BY3
-                    ^FO15,50 ^BQN,2,4 ^FDMA,<t t-out="lot_name"/>^FS
-                    ^XZ
-                </t>
-            </t>
-        </template>
-    </data>
+    ^XA
+    ^CI28
+    ^PW568
+    ^LL408
+    ^FO10,10
+    ^FB548,4,0,C
+    ^A0N,45,43
+    ^FD<t t-esc="lot.name"/>
+    ^FS
+    ^FO10,130
+    ^FB548,2,0,C
+    ^A0N,32,30
+    ^FD<t t-esc="product_id.default_code or ''"/>
+    ^FS<t t-if="lot.name">
+    <t t-set="bc_len" t-value="len(lot.name)"/>
+    <t t-set="bc_mod" t-value="2 if bc_len &lt;= 20 else 1"/>
+    <t t-set="bc_width" t-value="(11 * bc_len + 35) * bc_mod"/>
+    <t t-set="bc_x" t-value="max(10, int((568 - bc_width) / 2))"/>
+        ^FO<t t-out="bc_x"/>,175^BY<t t-out="bc_mod"/>^BCN,150,N,N,N
+        ^FD<t t-esc="lot.name"/>
+    ^FS</t>
+    ^XZ</t>
+</t>
+</template>
+</data>
 </odoo>
-
