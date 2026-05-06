@@ -13,10 +13,11 @@ except ImportError:
 class Partner(models.Model):
     _inherit = "res.partner"
 
+    # This module doesn't depend on 'mail', so we can't add tracking=True
+    # tracking=True is added in l10n_fr_siret_account
     siren = fields.Char(
         string="SIREN",
         size=9,
-        tracking=50,
         help="The SIREN number is the official identity "
         "number of the company in France. It composes "
         "the first 9 digits of the SIRET number.",
@@ -24,72 +25,79 @@ class Partner(models.Model):
     nic = fields.Char(
         string="NIC",
         size=5,
-        tracking=51,
         help="The NIC number is the official rank number "
         "of this office in the company in France. It "
         "composes the last 5 digits of the SIRET "
         "number.",
     )
-    # the original SIRET field is definied in l10n_fr
+    # the original SIRET field is definied in base module
     # We add an inverse method to make it easier to copy/paste a SIRET
     # from an external source to the partner form view of Odoo
-    siret = fields.Char(
-        compute="_compute_siret",
-        inverse="_inverse_siret",
+    company_registry = fields.Char(
+        compute="_compute_company_registry",
+        inverse="_inverse_company_registry",
         store=True,
-        precompute=True,
         readonly=False,
         help="The SIRET number is the official identity number of this "
         "company's office in France. It is composed of the 9 digits "
         "of the SIREN number and the 5 digits of the NIC number, ie. "
         "14 digits.",
+        index="btree_not_null",
     )
-    # company_registry is native since v16, cf
-    # https://github.com/OCA/l10n-france/issues/501
-    # Should we rename it... or stop using it ?
-    # company_registry = fields.Char(
-    #    help="The name of official registry where this company was declared.",
-    # )
-
     parent_is_company = fields.Boolean(
         related="parent_id.is_company", string="Parent is a Company"
     )
-    same_siren_partner_id = fields.Many2one(
+    same_siren_partner_ids = fields.Many2many(
         "res.partner",
-        compute="_compute_same_siren_partner_id",
-        string="Partner with same SIREN",
+        compute="_compute_same_siren_partner_ids",
+        string="Partners with same SIREN",
         compute_sudo=True,
     )
 
     @api.depends("siren", "nic")
-    def _compute_siret(self):
+    def _compute_company_registry(self):
         """Concatenate the SIREN and NIC to form the SIRET"""
         for rec in self:
             if rec.siren:
                 if rec.nic:
-                    rec.siret = rec.siren + rec.nic
+                    rec.company_registry = rec.siren + rec.nic
                 else:
-                    rec.siret = rec.siren + "*****"
+                    rec.company_registry = rec.siren + "*****"
             else:
-                rec.siret = False
+                rec.company_registry = False
 
-    def _inverse_siret(self):
+    def _compute_company_registry(self):
+        # exists to allow overrides
+        for company in self:
+            company.company_registry = company.company_registry
+
+    def _inverse_company_registry(self):
         for rec in self:
-            if rec.siret:
-                if siret.is_valid(rec.siret):
-                    rec.write({"siren": rec.siret[:9], "nic": rec.siret[9:]})
-                elif siren.is_valid(rec.siret[:9]) and rec.siret[9:] == "*****":
-                    rec.write({"siren": rec.siret[:9], "nic": False})
+            if rec.company_registry:
+                if siret.is_valid(rec.company_registry):
+                    rec.write(
+                        {
+                            "siren": rec.company_registry[:9],
+                            "nic": rec.company_registry[9:],
+                        }
+                    )
+                elif (
+                    siren.is_valid(rec.company_registry[:9])
+                    and rec.company_registry[9:] == "*****"
+                ):
+                    rec.write({"siren": rec.company_registry[:9], "nic": False})
                 else:
-                    raise ValidationError(_("SIRET '%s' is invalid.") % rec.siret)
+                    raise ValidationError(
+                        _("SIRET '%s' is invalid.") % rec.company_registry
+                    )
             else:
                 rec.write({"siren": False, "nic": False})
 
     @api.depends("siren", "company_id")
-    def _compute_same_siren_partner_id(self):
+    def _compute_same_siren_partner_ids(self):
         # Inspired by same_vat_partner_id from 'base' module
         for partner in self:
-            same_siren_partner_id = False
+            same_siren_partner_ids = False
             if partner.siren and not partner.parent_id:
                 domain = [
                     ("siren", "=", partner.siren),
@@ -105,10 +113,10 @@ class Partner(models.Model):
                 partner_id = partner._origin.id
                 if partner_id:
                     domain.append(("id", "!=", partner_id))
-                same_siren_partner_id = (
-                    self.with_context(active_test=False).search(domain, limit=1)
-                ).id or False
-            partner.same_siren_partner_id = same_siren_partner_id
+                same_siren_partner_ids = (
+                    self.with_context(active_test=False).search(domain)
+                ).ids or False
+            partner.same_siren_partner_ids = same_siren_partner_ids
 
     @api.constrains("siren", "nic")
     def _check_siret(self):
@@ -165,3 +173,21 @@ class Partner(models.Model):
         res = super()._address_fields()
         res.append("nic")
         return res
+
+    def action_open_business_doc(self):
+        """Method called when you click on the link in the duplicate warning banner"""
+        # WARNING: the exact same method is provided by the modules
+        # partner_mobile_duplicate_warn and partner_email_duplicate_warn.
+        # Let's hope that in future versions of Odoo this method will be present
+        # in the "base" module and we'll remove that code!
+        self.ensure_one()
+        action = {
+            "name": _("Partners"),
+            "type": "ir.actions.act_window",
+            "view_mode": "form",
+            "views": [(False, "form")],
+            "res_model": self._name,
+            "res_id": self.id,
+            "target": "current",
+        }
+        return action

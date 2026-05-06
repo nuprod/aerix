@@ -5,17 +5,15 @@
   License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 -->
 <odoo>
-
     <record id="res_company_form_l10n_fr" model="ir.ui.view">
         <field name="name">l10n_fr_siret.res.company.form</field>
         <field name="model">res.company</field>
         <field name="inherit_id" ref="l10n_fr.res_company_form_l10n_fr" />
         <field name="arch" type="xml">
-            <field name="siret" position="before">
-                <field name="siren" />
-                <field name="nic" />
-            </field>
+            <xpath expr="//field[@name='company_registry']" position="after">
+                <field name="siren" invisible="not is_france_country"/>
+                <field name="nic" invisible="not is_france_country"/>
+            </xpath>
         </field>
     </record>
-
 </odoo>
