@@ -40,7 +40,7 @@ class ResPartner(models.Model):
             "nic",
             "codedepartementetablissement",
             # for the wizard
-            "company_registry",
+            "siret",
             "categorieentreprise",
             "datecreationunitelegale",
             "activiteprincipaleunitelegale",

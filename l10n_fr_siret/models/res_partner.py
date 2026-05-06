@@ -66,11 +66,6 @@ class Partner(models.Model):
             else:
                 rec.company_registry = False
 
-    def _compute_company_registry(self):
-        # exists to allow overrides
-        for company in self:
-            company.company_registry = company.company_registry
-
     def _inverse_company_registry(self):
         for rec in self:
             if rec.company_registry:
