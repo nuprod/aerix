@@ -1,5 +1,5 @@
-# Copyright 2018-2021 Le Filament (<http://www.le-filament.com>)
-# Copyright 2021 Akretion France (http://www.akretion.com/)
+# Copyright 2018-2022 Le Filament (<http://www.le-filament.com>)
+# Copyright 2021-2022 Akretion France (http://www.akretion.com/)
 # @author: Alexis de Lattre <alexis.delattre@akretion.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
@@ -12,12 +12,13 @@ from odoo.exceptions import UserError
 
 logger = logging.getLogger(__name__)
 try:
-    from stdnum import __version__ as stdnum_version
     from stdnum.eu.vat import check_vies
     from stdnum.fr.siren import is_valid as siren_is_valid, to_tva as siren_to_vat
     from stdnum.fr.siret import is_valid as siret_is_valid
 except ImportError:
     logger.debug("Cannot import stdnum")
+
+TIMEOUT = 5
 
 
 class ResPartner(models.Model):
@@ -37,7 +38,7 @@ class ResPartner(models.Model):
             "nic",
             "codedepartementetablissement",
             # for the wizard
-            "company_registry",
+            "siret",
             "categorieentreprise",
             "datecreationunitelegale",
             "activiteprincipaleunitelegale",
@@ -72,7 +73,7 @@ class ResPartner(models.Model):
         try:
             logger.info("Sending query to https://data.opendatasoft.com/api")
             logger.debug("url=%s params=%s", url, params)
-            res = requests.get(url, params=params)
+            res = requests.get(url, params=params, timeout=TIMEOUT)
             if res.status_code in (200, 201):
                 res_json = res.json()
                 # from pprint import pprint
@@ -101,7 +102,7 @@ class ResPartner(models.Model):
                         "Technical error: %s."
                     )
                     % e
-                )
+                ) from e
         return False
 
     @api.model
@@ -121,8 +122,6 @@ class ResPartner(models.Model):
                 "city": raw_record.get("libellecommuneetablissement"),
                 "siren": raw_record.get("siren") and str(raw_record["siren"]) or False,
                 "nic": raw_record.get("nic"),
-                "ape":raw_record.get("activiteprincipaleunitelegale"),
-                "ape_label":raw_record.get("divisionunitelegale"),
             }
             # In feb 2022, they changed codepostaletablissement and
             # codedepartementetablissement from string to integer
@@ -180,19 +179,14 @@ class ResPartner(models.Model):
         vies_res = False
         res = False
         try:
-            stdnum_version_float = float(stdnum_version)
-        except Exception:
-            stdnum_version_float = 1.8
-        try:
-            if stdnum_version_float < 1.9:
-                vies_res = check_vies(vat)
-            else:
-                vies_res = check_vies(vat, timeout=5)
+            vies_res = check_vies(vat, timeout=TIMEOUT)
             logger.debug("VIES answer vies_res.valid=%s", vies_res.valid)
         except Exception as e:
             logger.error("VIES query failed: %s", e)
             if raise_if_fail:
-                raise UserError(_("Failed to query VIES.\nTechnical error: %s.") % e)
+                raise UserError(
+                    _("Failed to query VIES.\nTechnical error: %s.") % e
+                ) from e
             return None
         if vies_res and vies_res.valid:
             res = vat
@@ -257,16 +251,16 @@ class ResPartner(models.Model):
             if vals:
                 self.update(vals)
 
-    @api.onchange("company_registry")
+    @api.onchange("siret")
     def siret_onchange(self):
         if (
-            self.company_registry
-            and siret_is_valid(self.company_registry)
+            self.siret
+            and siret_is_valid(self.siret)
             and not self.name
             and self.is_company
             and not self.parent_id
         ):
-            vals = self._opendatasoft_get_from_siret(self.company_registry)
+            vals = self._opendatasoft_get_from_siret(self.siret)
             if vals:
                 self.update(vals)
 
@@ -276,7 +270,7 @@ class ResPartner(models.Model):
             self.vat
             and not self.name
             and not self.siren
-            and not self.company_registry
+            and not self.siret
             and self.is_company
             and not self.parent_id
         ):
@@ -296,7 +290,7 @@ class ResPartner(models.Model):
             and not self.parent_id
             and not self.siren
             and not self.nic
-            and not self.company_registry
+            and not self.siret
             and not self.street
             and not self.city
             and not self.zip

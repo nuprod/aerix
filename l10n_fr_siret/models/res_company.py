@@ -9,6 +9,9 @@ from odoo import fields, models
 class ResCompany(models.Model):
     _inherit = "res.company"
 
+    # siret field is defined in l10n_fr module on res.partner
+    # with an unstored related field on res.company
+    siret = fields.Char(store=True, readonly=True)
     siren = fields.Char(
         string="SIREN", related="partner_id.siren", store=True, readonly=False
     )
