@@ -2,7 +2,7 @@
 <odoo>
     <record id="group_force_invoice_without_reception" model="res.groups">
         <field name="name">Forcer la validation de facture sans réception</field>
-        <field name="category_id" ref="base.module_category_accounting_accounting"/>
+        <field name="privilege_id" ref="account.res_groups_privilege_accounting"/>
         <field name="comment">Permet de valider une facture fournisseur même si les quantités facturées dépassent les quantités reçues.</field>
     </record>
 </odoo>
