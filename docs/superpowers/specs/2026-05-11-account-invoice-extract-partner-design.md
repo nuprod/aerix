@@ -11,17 +11,21 @@ Chez Aerix, la majorité (>80 %) des factures fournisseurs arrivent par transfer
 
 ### Cause racine
 
-Dans `account_invoice_extract/models/account_invoice.py::_save_form`, le matching natif n'est appelé **que si `partner_id` est vide** :
+**Deux problèmes superposés** :
 
-```python
-with self._get_edi_creation() as move_form:
-    if not move_form.partner_id:                # bloque le matching OCR
-        partner_id, created = self._get_partner(ocr_results)
-        if partner_id:
-            move_form.partner_id = partner_id
-```
+1. **Côté création du record (mail.alias)** — `account.move.message_new` (`community/addons/account/models/account_move.py:6948`) résout `partner_id` depuis `msg_dict['from']` et filtre les "internal partners" (ligne 6980), mais ce filtre repose sur `partner.user_ids and all(user._is_internal())`. **Un partner-coquille créé par `mail.alias` à partir d'une boîte interne (ex. `achat@aerix-systems.com`, sans `res.users` lié) passe à travers le filtre** : `partner.user_ids` est vide → `is_internal_partner` retourne False → le partner-coquille est assigné. Diagnostic confirmé sur facture Aerix `BILL/2026/04/0017` : `partner_id` initial = partner-coquille id=202 (`name == email == achat@aerix-systems.com`, aucun user lié), corrigé manuellement vers AQUINOV.
 
-Or `mail.thread.message_new` pré-remplit `partner_id` avec le sender du mail (cf. comportement standard `mail.alias`).
+2. **Côté OCR (`account_invoice_extract/models/account_invoice.py::_save_form`)** — le matching natif n'est appelé **que si `partner_id` est vide** :
+
+   ```python
+   with self._get_edi_creation() as move_form:
+       if not move_form.partner_id:                # bloque le matching OCR
+           partner_id, created = self._get_partner(ocr_results)
+           if partner_id:
+               move_form.partner_id = partner_id
+   ```
+
+   Donc le partner-coquille assigné par `message_new` empêche l'OCR de placer le vrai fournisseur, même quand l'OCR a tout ce qu'il faut.
 
 ### Objectif
 
@@ -127,52 +131,53 @@ Méthode partagée, utilisée par `message_new` et `_save_form` :
 
 ```python
 def _nu_is_internal_sender(self, email_from):
-    """True si email_from correspond à un employé interne
-    (res.users actif, non-portail)."""
+    """True si email_from est sur l'un des domaines d'alias internes
+    de la société (mail.alias.domain).
+
+    Détecte les transféreurs internes même quand aucun res.users n'est
+    lié à l'adresse — cas typique des partners-coquilles créés par
+    mail.alias depuis une boîte interne (ex. achat@aerix-systems.com)."""
     if not email_from:
         return False
     parsed = tools.email_normalize(email_from)
     if not parsed:
         return False
-    user = self.env['res.users'].sudo().search(
-        [('active', '=', True),
-         ('share', '=', False),
-         ('partner_id.email_normalized', '=', parsed)],
-        limit=1,
-    )
-    return bool(user)
+    domain = parsed.rsplit('@', 1)[-1]
+    if not domain:
+        return False
+    return bool(self.env['mail.alias.domain'].sudo().search_count(
+        [('name', '=', domain)],
+    ))
 ```
 
 Choix de design :
 
-- `sudo()` ciblé sur `res.users` uniquement (les contributeurs sur l'alias mail n'ont pas forcément le droit de lire `res.users`).
+- **Critère = domaine** plutôt que `res.users` : le diagnostic Aerix a montré que le partner-coquille n'a pas de `res.users` lié. Notre check basé sur `partner_id.email_normalized → res.users` ratait le cas. Le domaine d'alias est la signature stable d'un email "interne".
+- **Source = `mail.alias.domain`** : table Odoo qui liste les domaines email configurés pour l'envoi/réception. Pour Aerix : `aerix-systems.com`, `aerix.odoo.com`. Évite une whitelist en dur dans le code.
+- `sudo()` ciblé sur `mail.alias.domain` uniquement.
 - `email_normalize` : tolérant aux variantes "Prenom Nom <mail@...>" et à la casse.
-- `share=False` : exclut les users portail (un fournisseur ayant un accès portail doit être traité comme externe).
-- `active=True` : un user désactivé est traité comme externe (acceptable — un ancien employé qui revient sur un vieux mail forwardé ne doit pas court-circuiter le matching).
+- Pas de filtre `company_id` : un domaine peut être partagé entre plusieurs sociétés ; on considère tout domaine présent dans `mail.alias.domain` comme interne.
+- Hors périmètre : un employé qui forwarde depuis Gmail perso (très rare en pratique) ne sera pas détecté. Compromis assumé pour la simplicité.
 
-### 5.2 Override `message_new` (amont)
+### 5.2 Override `message_new` (post-process)
 
 ```python
 @api.model
 def message_new(self, msg_dict, custom_values=None):
-    custom_values = dict(custom_values or {})
-    journal_id = (
-        custom_values.get('journal_id')
-        or self.env.context.get('default_journal_id')
-    )
-    journal = (
-        self.env['account.journal'].browse(journal_id)
-        if journal_id else self.env['account.journal']
-    )
+    move = super().message_new(msg_dict, custom_values=custom_values)
     if (
-        journal.type == 'purchase'
-        and self._nu_is_internal_sender(msg_dict.get('email_from'))
+        move
+        and move.journal_id.type == 'purchase'
+        and move.partner_id
+        and self._nu_is_internal_sender(move.partner_id.email)
     ):
-        custom_values.pop('partner_id', None)
-    return super().message_new(msg_dict, custom_values=custom_values)
+        move.partner_id = False
+    return move
 ```
 
-Conservation de la traçabilité : on ne touche pas à `email_from` ni au `mail.message` créé par `mail.thread` — la trace du transféreur reste dans le chatter de la facture.
+**Pourquoi post-process et pas un `pop` sur `custom_values`** : `account.move.message_new` natif (`community/addons/account/models/account_move.py:6987-6991`) **rebuild** son dict `values` depuis `msg_dict['from']` et ignore le `partner_id` éventuellement présent dans `custom_values`. Toute manipulation amont est un no-op. Le seul levier robuste est de laisser le natif s'exécuter, puis examiner et corriger le résultat.
+
+Conservation de la traçabilité : on ne touche pas à `email_from`, ni à `invoice_source_email`, ni au `mail.message` créé par `mail.thread` — la trace du transféreur reste dans le chatter de la facture.
 
 ### 5.3 Matching enrichi par SIREN
 
@@ -262,39 +267,46 @@ Vérifié contre la skill `check-odoo-structure` :
 
 | Cas | Comportement |
 |---|---|
-| Sender = vrai fournisseur externe (forward direct) | `_nu_is_internal_sender` retourne False → `partner_id` conservé. |
-| Sender = user portail (share=True) | Idem : traité comme externe. |
-| Sender interne sur journal Ventes | Pas de pop, comportement natif intact. |
-| `email_from` absent (création API, drag-and-drop) | `message_new` non concerné. Rattrapage `_save_form` non déclenché (pas de user interne en partner_id). |
+| Partner-coquille créé par mail.alias depuis boîte interne (email sur `mail.alias.domain`) | `_nu_is_internal_sender` retourne True → `partner_id` clearé. **Cas H1, confirmé empiriquement sur Aerix.** |
+| Sender = vrai fournisseur externe (forward direct) | Email sur domaine inconnu de `mail.alias.domain` → False → `partner_id` conservé. |
+| Sender = user employé Aerix avec email `@aerix-systems.com` | Domaine matche → traité comme interne → `partner_id` clearé. |
+| Sender interne sur journal Ventes | `journal.type != 'purchase'` → override ne s'applique pas, comportement natif intact. |
+| `email_from` absent (création API, drag-and-drop) | `move.partner_id.email` absent ou non-domaine-interne → False → pas de modification. |
+| Email sur domaine externe (Gmail, Yahoo, etc.) | Pas dans `mail.alias.domain` → False → `partner_id` conservé. |
+| Employé Aerix forwardant depuis sa boîte Gmail perso (rare) | Non détecté — compromis assumé pour la simplicité du critère. |
 | VAT OCR non-FR (ex. `BE0123456789`) | Regex SIREN ne match pas → fallback natif. |
 | VAT FR mais aucun SIRET en base | `_nu_find_partner_by_siren_from_vat` retourne False → fallback natif. |
 | Multi-établissements même SIREN | Choix du `supplier_rank` le plus élevé. |
 | OCR sans VAT/IBAN/nom | `partner_id` reste vide (natif inchangé). |
-| Facture créée avant install | Au prochain passage OCR : rattrapage `_save_form` si `partner_id` = user interne. |
-| User interne désactivé entre-temps | Considéré comme externe (compromis assumé). |
+| Facture créée avant install | Au prochain passage OCR : rattrapage `_save_form` si `partner_id.email` est sur un domaine interne. |
+| `mail.alias.domain` modifié après install | Aucun cache, lecture à chaque appel → effet immédiat. |
 | VAT mal OCR-isée | SIREN dérivé faux → ne matche rien → fallback nom. Pas de faux positif. |
 
 ## 9. Tests
 
 **Fichier** : `tests/test_extract_partner.py`
-**Base** : `TestAccountInvoiceExtractCommon` si réutilisable depuis `account_invoice_extract`, sinon `AccountTestInvoicingCommon` + mock IAP.
+**Base** : `AccountTestInvoicingCommon` + appels directs à `message_new` / `_save_form` avec mocks `ocr_results`.
 
 | # | Test | Setup | Assertion |
 |---|---|---|---|
-| 1 | `test_internal_sender_partner_id_dropped_on_purchase` | Journal Achats + `message_new` avec `email_from` d'un user interne | facture créée, `partner_id` vide |
-| 2 | `test_external_sender_partner_id_kept_on_purchase` | Journal Achats + `email_from` inconnu en base | `partner_id` set (mécanisme natif) |
-| 3 | `test_portal_user_treated_as_external` | Journal Achats + `email_from` d'un user `share=True` | `partner_id` set (pas droppé) |
-| 4 | `test_internal_sender_on_sale_journal_kept` | Journal Ventes + user interne | `partner_id` non droppé |
-| 5 | `test_inactive_user_treated_as_external` | User interne mais `active=False` | `partner_id` non droppé |
-| 6 | `test_get_partner_matches_by_vat_first` | OCR VAT exacte d'un partner existant | retourne ce partner, SIREN non interrogé |
-| 7 | `test_get_partner_matches_by_siren_fallback` | OCR VAT FR jamais vue, mais SIRET en base avec ce SIREN | retourne le partner SIREN |
-| 8 | `test_siren_match_picks_highest_supplier_rank` | 2 établissements même SIREN, rank différents | retourne celui avec `supplier_rank` le plus élevé |
-| 9 | `test_siren_no_match_falls_back_to_native` | VAT FR sans SIRET correspondant | `super()._get_partner` appelé |
-| 10 | `test_non_french_vat_skips_siren` | VAT belge (`BE0XXXXXXXX`) | SIREN non tenté, super() direct |
-| 11 | `test_malformed_vat_skips_siren` | VAT avec caractères impossibles | regex ne match pas, super() direct |
-| 12 | `test_save_form_overrides_internal_partner` | Facture avec `partner_id` = user interne + OCR retourne VAT d'un fournisseur réel | `partner_id` réécrit |
-| 13 | `test_save_form_keeps_external_partner` | Facture avec `partner_id` = vrai partenaire externe + OCR | `partner_id` conservé |
-| 14 | `test_save_form_internal_partner_no_ocr_match` | `partner_id` = user interne, OCR sans match | `partner_id` reste vide |
+| 1 | `test_internal_domain_returns_true` | `mail.alias.domain(name='aerix-systems.com')` + email `achat@aerix-systems.com` | `_nu_is_internal_sender` True |
+| 2 | `test_external_domain_returns_false` | Email `billing@vendor.com` (non listé) | False |
+| 3 | `test_with_name_wrapper` | `'"Achat" <achat@aerix-systems.com>'` | True |
+| 4 | `test_empty_email_returns_false` | `""` et `None` | False |
+| 5 | `test_garbage_email_returns_false` | `"not an email"` | False |
+| 6 | `test_message_new_clears_internal_partner_on_purchase` | Journal Achats + un mail avec from sur domaine interne, le natif assigne partner-coquille | `move.partner_id` False après message_new |
+| 7 | `test_message_new_keeps_external_partner_on_purchase` | Journal Achats + from sur domaine externe, natif assigne partner externe | `move.partner_id` conservé |
+| 8 | `test_message_new_internal_sender_on_sale_journal_kept` | Journal Ventes + from sur domaine interne | `move.partner_id` non clearé (out-of-scope) |
+| 9 | `test_message_new_no_partner_id_resolved_by_native` | Journal Achats, natif ne résout pas de partner | `move.partner_id` False (idempotent, pas de crash) |
+| 10 | `test_get_partner_matches_by_vat_first` | OCR VAT exacte d'un partner existant | retourne ce partner, SIREN non interrogé |
+| 11 | `test_get_partner_matches_by_siren_fallback` | OCR VAT FR jamais vue, mais SIRET en base avec ce SIREN | retourne le partner SIREN |
+| 12 | `test_siren_match_picks_highest_supplier_rank` | 2 établissements même SIREN, rank différents | retourne celui avec `supplier_rank` le plus élevé |
+| 13 | `test_siren_no_match_falls_back_to_native` | VAT FR sans SIRET correspondant | `super()._get_partner` appelé |
+| 14 | `test_non_french_vat_skips_siren` | VAT belge (`BE0XXXXXXXX`) | SIREN non tenté, super() direct |
+| 15 | `test_malformed_vat_skips_siren` | VAT avec caractères impossibles | regex ne match pas, super() direct |
+| 16 | `test_save_form_overrides_internal_partner` | Facture avec `partner_id` = partner-coquille interne + OCR retourne VAT d'un fournisseur réel | `partner_id` réécrit |
+| 17 | `test_save_form_keeps_external_partner` | Facture avec `partner_id` = vrai partenaire externe + OCR | `partner_id` conservé |
+| 18 | `test_save_form_internal_partner_no_ocr_match` | `partner_id` = partner-coquille, OCR sans match | `partner_id` reste vide |
 
 ## 10. Hors périmètre (YAGNI)
 
