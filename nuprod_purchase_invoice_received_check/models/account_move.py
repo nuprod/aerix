@@ -9,7 +9,7 @@ class AccountMove(models.Model):
         compute="_compute_nu_invoice_over_received",
         store=False,
     )
-    nu_invoice_over_received_warning = fields.Char(
+    nu_invoice_over_received_warning = fields.Text(
         compute="_compute_nu_invoice_over_received",
         store=False,
     )
