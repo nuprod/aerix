@@ -5,41 +5,33 @@ class AccountMove(models.Model):
     _inherit = "account.move"
 
     def _nu_is_internal_sender(self, email_from):
-        """True if email_from resolves to an active, non-portal employee.
+        """True if email_from belongs to one of the company's internal
+        alias domains (mail.alias.domain).
 
-        Used both at message_new (drop the forwarder partner_id) and at
-        _save_form (force OCR re-match when the current partner_id is an
-        internal user).
+        Detects internal forwarders even when no res.users is linked to
+        the email — the partner-coquille case created by mail.alias
+        from a generic internal mailbox (e.g. achat@aerix-systems.com).
         """
         if not email_from:
             return False
         parsed = tools.email_normalize(email_from)
         if not parsed:
             return False
-        user = self.env["res.users"].sudo().search(
-            [
-                ("active", "=", True),
-                ("share", "=", False),
-                ("partner_id.email_normalized", "=", parsed),
-            ],
-            limit=1,
-        )
-        return bool(user)
+        domain = parsed.rsplit("@", 1)[-1]
+        if not domain:
+            return False
+        return bool(self.env["mail.alias.domain"].sudo().search_count(
+            [("name", "=", domain)],
+        ))
 
     @api.model
     def message_new(self, msg_dict, custom_values=None):
-        custom_values = dict(custom_values or {})
-        journal_id = (
-            custom_values.get("journal_id")
-            or self.env.context.get("default_journal_id")
-        )
-        journal = (
-            self.env["account.journal"].browse(journal_id)
-            if journal_id else self.env["account.journal"]
-        )
+        move = super().message_new(msg_dict, custom_values=custom_values)
         if (
-            journal.type == "purchase"
-            and self._nu_is_internal_sender(msg_dict.get("email_from"))
+            move
+            and move.journal_id.type == "purchase"
+            and move.partner_id
+            and self._nu_is_internal_sender(move.partner_id.email)
         ):
-            custom_values.pop("partner_id", None)
-        return super().message_new(msg_dict, custom_values=custom_values)
+            move.partner_id = False
+        return move
