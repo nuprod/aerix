@@ -140,3 +140,41 @@ class TestInvoiceReceivedCheck(TransactionCase):
         # Cumul: 5 + 3 = 8, received = 8 → allowed
         second.action_post()
         self.assertEqual(second.state, "posted")
+
+    def test_mixed_line_only_po_lines_checked(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=2)
+        invoice = self._make_invoice_from_po(po)
+        invoice.invoice_line_ids.write({"quantity": 10})
+        # Add a free line (no PO link) — should NOT block on its own.
+        free_product = self.env["product.product"].create({
+            "name": "Free", "type": "service",
+        })
+        self.env["account.move.line"].with_context(check_move_validity=False).create({
+            "move_id": invoice.id,
+            "product_id": free_product.id,
+            "quantity": 99,
+            "price_unit": 1,
+        })
+        excesses = invoice._nu_get_invoice_received_excesses()
+        self.assertEqual(len(excesses), 1)
+        self.assertEqual(excesses[0][0], po.order_line)
+        with self.assertRaises(UserError):
+            invoice.action_post()
+
+    def test_multiple_invoice_lines_same_po_line(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=4)
+        invoice = self._make_invoice_from_po(po)
+        # Set the existing line to 2, add another line on the same PO line for 3.
+        # Cumul: 2 + 3 = 5, received = 4 → block.
+        invoice.invoice_line_ids.write({"quantity": 2})
+        self.env["account.move.line"].with_context(check_move_validity=False).create({
+            "move_id": invoice.id,
+            "product_id": self.product.id,
+            "quantity": 3,
+            "price_unit": 100,
+            "purchase_line_id": po.order_line.id,
+        })
+        with self.assertRaises(UserError):
+            invoice.action_post()
