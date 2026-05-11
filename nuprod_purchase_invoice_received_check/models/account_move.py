@@ -24,7 +24,14 @@ class AccountMove(models.Model):
         if not eligible_lines:
             return []
         excesses = []
-        po_lines = eligible_lines.purchase_line_id
+        # sudo on the purchase lines: users with account access but no purchase
+        # access (e.g. account.group_account_invoice without
+        # purchase.group_purchase_user) must still be able to open the bill
+        # form; the compute runs on read and would otherwise raise AccessError
+        # on qty_received / qty_invoiced / product_id.display_name.
+        # The bypass-group check in _post is unaffected since it uses
+        # self.env.user.has_group, not .sudo().
+        po_lines = eligible_lines.purchase_line_id.sudo()
         for po_line in po_lines:
             current_lines = eligible_lines.filtered(lambda l: l.purchase_line_id == po_line)
             # Convert each bill line's quantity to the PO line's UoM so the
