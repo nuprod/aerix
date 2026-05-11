@@ -43,9 +43,18 @@ class TestInvoiceReceivedCheck(TransactionCase):
         picking._action_done()
 
     def _make_invoice_from_po(self, po):
-        """Create a draft bill from the PO (Odoo prefills lines from PO)."""
+        """Create a draft bill from the PO (Odoo prefills lines from PO).
+
+        Returns the most recently created draft, identified by max id rather
+        than by po.invoice_ids[-1]. account.move._order is
+        ``date desc, name desc, id desc``, so drafts created within the same
+        transaction (no date / no name yet) end up sorted by id desc — meaning
+        index 0, not -1, is the newest. Filter to drafts and sort by id to be
+        explicit and resilient against the cumulative tests that call this
+        helper twice in a row.
+        """
         po.action_create_invoice()
-        return po.invoice_ids[-1]
+        return po.invoice_ids.filtered(lambda m: m.state == "draft").sorted("id")[-1]
 
     def test_invoice_fully_received(self):
         po = self._make_po(self.product, qty=10)
