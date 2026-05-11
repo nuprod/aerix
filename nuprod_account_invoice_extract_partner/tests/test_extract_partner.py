@@ -20,6 +20,17 @@ class TestExtractPartner(TransactionCase):
             "email": "billing@externalvendor.com",
             "supplier_rank": 5,
         })
+        # SIREN fixtures: same SIREN 732829320, two establishments
+        cls.fr_vendor_siret = cls.env["res.partner"].create({
+            "name": "FR Vendor Siège",
+            "siret": "73282932000012",
+            "supplier_rank": 1,
+        })
+        cls.fr_vendor_other_etab = cls.env["res.partner"].create({
+            "name": "FR Vendor Établissement",
+            "siret": "73282932000045",
+            "supplier_rank": 0,
+        })
 
     # --- _nu_is_internal_sender tests ---
 
@@ -64,6 +75,55 @@ class TestExtractPartner(TransactionCase):
         move = self.AccountMove.new({})
         self.assertFalse(
             move._nu_is_internal_sender("foo@sub.aerix-systems.com")
+        )
+
+    # --- _nu_find_partner_by_siren_from_vat tests ---
+
+    def test_siren_match_returns_partner(self):
+        move = self.AccountMove.new({})
+        partner = move._nu_find_partner_by_siren_from_vat("FR12732829320")
+        self.assertEqual(partner, self.fr_vendor_siret)
+
+    def test_siren_match_picks_highest_supplier_rank(self):
+        move = self.AccountMove.new({})
+        partner = move._nu_find_partner_by_siren_from_vat("FR12732829320")
+        self.assertEqual(partner, self.fr_vendor_siret)
+        self.assertGreater(
+            self.fr_vendor_siret.supplier_rank,
+            self.fr_vendor_other_etab.supplier_rank,
+        )
+
+    def test_siren_match_handles_whitespace_in_vat(self):
+        move = self.AccountMove.new({})
+        partner = move._nu_find_partner_by_siren_from_vat("FR 12 732829320")
+        self.assertEqual(partner, self.fr_vendor_siret)
+
+    def test_siren_match_handles_lowercase_vat(self):
+        move = self.AccountMove.new({})
+        partner = move._nu_find_partner_by_siren_from_vat("fr12732829320")
+        self.assertEqual(partner, self.fr_vendor_siret)
+
+    def test_non_french_vat_returns_empty(self):
+        move = self.AccountMove.new({})
+        self.assertFalse(
+            move._nu_find_partner_by_siren_from_vat("BE0477472701")
+        )
+
+    def test_french_vat_with_no_siret_in_db_returns_empty(self):
+        move = self.AccountMove.new({})
+        self.assertFalse(
+            move._nu_find_partner_by_siren_from_vat("FR99999999999")
+        )
+
+    def test_empty_vat_returns_empty(self):
+        move = self.AccountMove.new({})
+        self.assertFalse(move._nu_find_partner_by_siren_from_vat(""))
+        self.assertFalse(move._nu_find_partner_by_siren_from_vat(None))
+
+    def test_malformed_vat_returns_empty(self):
+        move = self.AccountMove.new({})
+        self.assertFalse(
+            move._nu_find_partner_by_siren_from_vat("FR-not-a-vat")
         )
 
     # --- message_new tests ---

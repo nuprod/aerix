@@ -1,4 +1,9 @@
+import re
+
 from odoo import api, models, tools
+
+
+SIREN_FROM_VAT_FR_RE = re.compile(r"^FR[0-9A-Z]{2}([0-9]{9})$")
 
 
 class AccountMove(models.Model):
@@ -23,6 +28,28 @@ class AccountMove(models.Model):
         return bool(self.env["mail.alias.domain"].sudo().search_count(
             [("name", "=ilike", domain)],
         ))
+
+    def _nu_find_partner_by_siren_from_vat(self, vat_number_ocr):
+        """If the OCR VAT is French (FRXX#########), extract the SIREN
+        (the trailing 9 digits) and return the partner whose siret starts
+        with that SIREN. In multi-établissement cases, prefer the highest
+        supplier_rank. Returns an empty res.partner() recordset if no match.
+        """
+        if not vat_number_ocr:
+            return self.env["res.partner"]
+        cleaned = re.sub(r"\s", "", vat_number_ocr.upper())
+        match = SIREN_FROM_VAT_FR_RE.match(cleaned)
+        if not match:
+            return self.env["res.partner"]
+        siren = match.group(1)
+        return self.env["res.partner"].search(
+            [
+                *self.env["res.partner"]._check_company_domain(self.company_id),
+                ("siret", "=like", f"{siren}%"),
+            ],
+            order="supplier_rank desc",
+            limit=1,
+        )
 
     @api.model
     def message_new(self, msg_dict, custom_values=None):
