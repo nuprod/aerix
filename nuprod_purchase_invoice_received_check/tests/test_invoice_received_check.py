@@ -98,3 +98,20 @@ class TestInvoiceReceivedCheck(TransactionCase):
         self.assertFalse(invoice.nu_has_invoice_over_received)
         invoice.action_post()
         self.assertEqual(invoice.state, "posted")
+
+    def test_refund_always_allowed(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=2)
+        refund = self.env["account.move"].create({
+            "move_type": "in_refund",
+            "partner_id": self.partner.id,
+            "invoice_line_ids": [(0, 0, {
+                "product_id": self.product.id,
+                "quantity": 10,
+                "price_unit": 100,
+                "purchase_line_id": po.order_line.id,
+            })],
+        })
+        self.assertFalse(refund.nu_has_invoice_over_received)
+        refund.action_post()
+        self.assertEqual(refund.state, "posted")
