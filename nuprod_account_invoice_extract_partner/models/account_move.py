@@ -51,6 +51,21 @@ class AccountMove(models.Model):
             limit=1,
         )
 
+    def _get_partner(self, ocr_results):
+        vat_number_ocr = self._get_ocr_selected_value(
+            ocr_results, "VAT_Number", "",
+        )
+        if vat_number_ocr:
+            partner_vat = self._find_partner_id_with_vat(vat_number_ocr)
+            if partner_vat:
+                return partner_vat, False
+            partner_siren = self._nu_find_partner_by_siren_from_vat(
+                vat_number_ocr,
+            )
+            if partner_siren:
+                return partner_siren, False
+        return super()._get_partner(ocr_results)
+
     @api.model
     def message_new(self, msg_dict, custom_values=None):
         move = super().message_new(msg_dict, custom_values=custom_values)

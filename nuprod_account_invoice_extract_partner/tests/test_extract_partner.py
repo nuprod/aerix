@@ -206,3 +206,89 @@ class TestExtractPartner(TransactionCase):
             },
         )
         self.assertFalse(move.partner_id)
+
+    # --- _get_partner tests ---
+
+    def _ocr_results(self, vat="", iban="", supplier_name=""):
+        """Mock of the OCR result dict consumed by _get_partner and
+        _save_form. Includes the minimum keys needed for _save_form
+        (Task 6) not to crash on its native pipeline.
+        """
+        return {
+            "VAT_Number": {
+                "selected_value": {"content": vat},
+                "candidates": [],
+            },
+            "iban": {
+                "selected_value": {"content": iban},
+                "candidates": [],
+            },
+            "supplier": {
+                "selected_value": {"content": supplier_name},
+                "candidates": [],
+            },
+            "invoice_lines": [],
+            "date": {"selected_value": {"content": ""}, "candidates": []},
+            "due_date": {"selected_value": {"content": ""}, "candidates": []},
+            "total": {"selected_value": {"content": 0.0}, "candidates": []},
+            "subtotal": {"selected_value": {"content": 0.0}, "candidates": []},
+            "invoice_id": {"selected_value": {"content": ""}, "candidates": []},
+            "currency": {"selected_value": {"content": ""}, "candidates": []},
+            "payment_ref": {"selected_value": {"content": ""}, "candidates": []},
+            "total_tax_amount": {"selected_value": {"content": 0.0}, "words": []},
+            "SWIFT_code": {"selected_value": {"content": "{}"}, "candidates": []},
+            "qr-bill": {"selected_value": {"content": ""}, "candidates": []},
+            "client": {"selected_value": {"content": ""}, "candidates": []},
+        }
+
+    def _new_purchase_move(self, partner=None):
+        journal = self._purchase_journal()
+        return self.env["account.move"].create({
+            "journal_id": journal.id,
+            "move_type": "in_invoice",
+            "partner_id": partner.id if partner else False,
+        })
+
+    def test_get_partner_matches_by_vat_first(self):
+        vat_partner = self.env["res.partner"].create({
+            "name": "VAT Match",
+            "vat": "FR12732829320",
+            "supplier_rank": 5,
+        })
+        move = self._new_purchase_move()
+        partner, created = move._get_partner(
+            self._ocr_results(vat="FR12732829320"),
+        )
+        self.assertEqual(partner, vat_partner)
+        self.assertFalse(created)
+
+    def test_get_partner_falls_back_to_siren(self):
+        # No partner with the exact VAT, but fr_vendor_siret has a SIRET
+        # starting with the SIREN derived from FR12732829320.
+        move = self._new_purchase_move()
+        partner, created = move._get_partner(
+            self._ocr_results(vat="FR12732829320"),
+        )
+        self.assertEqual(partner, self.fr_vendor_siret)
+        self.assertFalse(created)
+
+    def test_get_partner_non_french_vat_skips_siren(self):
+        # Non-FR VAT: SIREN helper skipped, falls through to native path.
+        # We assert it doesn't return one of our FR fixtures.
+        move = self._new_purchase_move()
+        partner, _created = move._get_partner(
+            self._ocr_results(vat="BE0477472701"),
+        )
+        self.assertNotEqual(partner, self.fr_vendor_siret)
+        self.assertNotEqual(partner, self.fr_vendor_other_etab)
+
+    def test_get_partner_no_vat_falls_through(self):
+        # No VAT at all: SIREN never tried, native path executes.
+        # Smoke test that no exception is raised.
+        move = self._new_purchase_move()
+        # extract_partner_name is read by native name matcher
+        move.extract_partner_name = "External Vendor"
+        partner, _created = move._get_partner(self._ocr_results())
+        # We don't assert a specific partner here — just that the call
+        # didn't crash and returned a tuple.
+        self.assertIsNotNone(partner)
