@@ -27,7 +27,15 @@ class AccountMove(models.Model):
         po_lines = eligible_lines.purchase_line_id
         for po_line in po_lines:
             current_lines = eligible_lines.filtered(lambda l: l.purchase_line_id == po_line)
-            qty_current = sum(current_lines.mapped("quantity"))
+            # Convert each bill line's quantity to the PO line's UoM so the
+            # comparison stays consistent with qty_invoiced and qty_received
+            # (both expressed in po_line.product_uom_id).
+            qty_current = sum(
+                inv_line.product_uom_id._compute_quantity(
+                    inv_line.quantity, po_line.product_uom_id
+                )
+                for inv_line in current_lines
+            )
             qty_already_other = po_line.qty_invoiced - qty_current
             qty_total = qty_already_other + qty_current
             if qty_total - po_line.qty_received > 1e-6:
