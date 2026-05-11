@@ -146,7 +146,7 @@ def _nu_is_internal_sender(self, email_from):
     if not domain:
         return False
     return bool(self.env['mail.alias.domain'].sudo().search_count(
-        [('name', '=', domain)],
+        [('name', '=ilike', domain)],
     ))
 ```
 
@@ -285,7 +285,7 @@ Vérifié contre la skill `check-odoo-structure` :
 ## 9. Tests
 
 **Fichier** : `tests/test_extract_partner.py`
-**Base** : `AccountTestInvoicingCommon` + appels directs à `message_new` / `_save_form` avec mocks `ocr_results`.
+**Base** : `TransactionCase` + appels directs à `message_new` / `_save_form` avec mocks `ocr_results`.
 
 | # | Test | Setup | Assertion |
 |---|---|---|---|
