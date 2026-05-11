@@ -1,5 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.float_utils import float_compare
 
 
 class AccountMove(models.Model):
@@ -45,7 +46,11 @@ class AccountMove(models.Model):
             )
             qty_already_other = po_line.qty_invoiced - qty_current
             qty_total = qty_already_other + qty_current
-            if qty_total - po_line.qty_received > 1e-6:
+            if float_compare(
+                qty_total,
+                po_line.qty_received,
+                precision_rounding=po_line.product_uom_id.rounding,
+            ) > 0:
                 excesses.append((po_line, qty_total, po_line.qty_received))
         return excesses
 
