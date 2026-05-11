@@ -55,3 +55,23 @@ class TestInvoiceReceivedCheck(TransactionCase):
         invoice.action_post()
         self.assertEqual(invoice.state, "posted")
         self.assertFalse(invoice.nu_has_invoice_over_received)
+
+    def test_invoice_partially_received_blocks(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=4)
+        invoice = self._make_invoice_from_po(po)
+        invoice.invoice_line_ids.write({"quantity": 10})
+        self.assertTrue(invoice.nu_has_invoice_over_received)
+        self.assertIn("10", invoice.nu_invoice_over_received_warning or "")
+        self.assertIn("4", invoice.nu_invoice_over_received_warning or "")
+        with self.assertRaises(UserError):
+            invoice.action_post()
+
+    def test_invoice_partially_received_at_received_qty(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=4)
+        invoice = self._make_invoice_from_po(po)
+        invoice.invoice_line_ids.write({"quantity": 4})
+        invoice.action_post()
+        self.assertEqual(invoice.state, "posted")
+        self.assertFalse(invoice.nu_has_invoice_over_received)
