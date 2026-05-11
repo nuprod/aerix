@@ -115,3 +115,28 @@ class TestInvoiceReceivedCheck(TransactionCase):
         self.assertFalse(refund.nu_has_invoice_over_received)
         refund.action_post()
         self.assertEqual(refund.state, "posted")
+
+    def test_cumulative_invoicing_blocks(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=6)
+        first = self._make_invoice_from_po(po)
+        first.invoice_line_ids.write({"quantity": 6})
+        first.action_post()
+        self.assertEqual(first.state, "posted")
+        second = self._make_invoice_from_po(po)
+        second.invoice_line_ids.write({"quantity": 4})
+        # Cumul: 6 (already invoiced) + 4 (current) = 10, received = 6 → block
+        with self.assertRaises(UserError):
+            second.action_post()
+
+    def test_cumulative_invoicing_within_received(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=8)
+        first = self._make_invoice_from_po(po)
+        first.invoice_line_ids.write({"quantity": 5})
+        first.action_post()
+        second = self._make_invoice_from_po(po)
+        second.invoice_line_ids.write({"quantity": 3})
+        # Cumul: 5 + 3 = 8, received = 8 → allowed
+        second.action_post()
+        self.assertEqual(second.state, "posted")
