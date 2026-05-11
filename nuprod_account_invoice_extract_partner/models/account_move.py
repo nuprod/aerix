@@ -25,3 +25,21 @@ class AccountMove(models.Model):
             limit=1,
         )
         return bool(user)
+
+    @api.model
+    def message_new(self, msg_dict, custom_values=None):
+        custom_values = dict(custom_values or {})
+        journal_id = (
+            custom_values.get("journal_id")
+            or self.env.context.get("default_journal_id")
+        )
+        journal = (
+            self.env["account.journal"].browse(journal_id)
+            if journal_id else self.env["account.journal"]
+        )
+        if (
+            journal.type == "purchase"
+            and self._nu_is_internal_sender(msg_dict.get("email_from"))
+        ):
+            custom_values.pop("partner_id", None)
+        return super().message_new(msg_dict, custom_values=custom_values)
