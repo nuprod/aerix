@@ -89,3 +89,12 @@ class TestInvoiceReceivedCheck(TransactionCase):
         self.assertFalse(invoice.nu_has_invoice_over_received)
         invoice.action_post()
         self.assertEqual(invoice.state, "posted")
+
+    def test_service_line_always_allowed(self):
+        po = self._make_po(self.service, qty=10)
+        # No receipt for service products (no picking generated).
+        invoice = self._make_invoice_from_po(po)
+        invoice.invoice_line_ids.write({"quantity": 10})
+        self.assertFalse(invoice.nu_has_invoice_over_received)
+        invoice.action_post()
+        self.assertEqual(invoice.state, "posted")
