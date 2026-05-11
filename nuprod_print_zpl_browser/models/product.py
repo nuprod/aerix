@@ -30,7 +30,7 @@ class nuprod_product_template_zpl(models.Model):
 
             render = self.env["ir.actions.report"]._render(
                 layout_data["report_name"],
-                self.ids,
+                self.product_variant_ids.ids,
                 layout_data["data"],
             )
 
@@ -64,7 +64,7 @@ class nuprod_product_product_zpl(models.Model):
         layout = self.env["product.label.layout"].create({
             "print_format": "zpl",
             "custom_quantity": 1,
-            "product_tmpl_ids": self.ids,
+            "product_tmpl_ids": self.mapped('product_tmpl_id').ids,
         })
         layout_data = layout.process()
 
