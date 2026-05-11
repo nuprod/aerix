@@ -66,6 +66,16 @@ class AccountMove(models.Model):
                 return partner_siren, False
         return super()._get_partner(ocr_results)
 
+    def _save_form(self, ocr_results):
+        needs_override = (
+            self.move_type in ("in_invoice", "in_refund")
+            and self.partner_id
+            and self._nu_is_internal_sender(self.partner_id.email)
+        )
+        if needs_override:
+            self.partner_id = False
+        return super()._save_form(ocr_results)
+
     @api.model
     def message_new(self, msg_dict, custom_values=None):
         move = super().message_new(msg_dict, custom_values=custom_values)

@@ -292,3 +292,49 @@ class TestExtractPartner(TransactionCase):
         # We don't assert a specific partner here — just that the call
         # didn't crash and returned a tuple.
         self.assertIsNotNone(partner)
+
+    # --- _save_form tests ---
+
+    def test_save_form_clears_internal_partner_then_rematches(self):
+        # Bill has partner_id = partner-coquille on internal alias domain.
+        # OCR data points to a real vendor via VAT. _save_form should clear
+        # the coquille and let the native flow set the real vendor.
+        move = self._new_purchase_move(partner=self.coquille_partner)
+        vat_partner = self.env["res.partner"].create({
+            "name": "Real Vendor",
+            "vat": "FR12732829320",
+            "supplier_rank": 5,
+        })
+        move._save_form(self._ocr_results(vat="FR12732829320"))
+        self.assertEqual(move.partner_id, vat_partner)
+
+    def test_save_form_keeps_external_partner(self):
+        # Bill has a real external partner — _save_form leaves it alone
+        # (super sees partner_id set and skips its matching path).
+        move = self._new_purchase_move(partner=self.external_partner)
+        move._save_form(self._ocr_results(vat="FR12732829320"))
+        self.assertEqual(move.partner_id, self.external_partner)
+
+    def test_save_form_internal_partner_no_ocr_match_leaves_empty(self):
+        # partner_id = coquille (internal). OCR has nothing usable.
+        # We clear the coquille; native finds no match; result = empty.
+        # Compromise: better empty (forces manual entry) than wrong.
+        move = self._new_purchase_move(partner=self.coquille_partner)
+        move._save_form(self._ocr_results())
+        self.assertFalse(move.partner_id)
+
+    def test_save_form_refund_internal_partner_cleared(self):
+        # in_refund triggers the same recovery as in_invoice.
+        journal = self._purchase_journal()
+        move = self.env["account.move"].create({
+            "journal_id": journal.id,
+            "move_type": "in_refund",
+            "partner_id": self.coquille_partner.id,
+        })
+        vat_partner = self.env["res.partner"].create({
+            "name": "Refund Vendor",
+            "vat": "FR12732829320",
+            "supplier_rank": 5,
+        })
+        move._save_form(self._ocr_results(vat="FR12732829320"))
+        self.assertEqual(move.partner_id, vat_partner)
