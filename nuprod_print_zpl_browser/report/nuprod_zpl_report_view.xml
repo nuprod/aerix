@@ -6,7 +6,7 @@
         <field name="name">Product Template Label ZPL</field>
         <field name="model">product.template</field>
         <field name="report_type">qweb-text</field>
-        <field name="report_name">nuprod_print_zpl_browser.report_nuprod_product_label_zpl</field>
+        <field name="report_name">nuprod_print_zpl_browser.report_nuprod_product_template_label_zpl</field>
         <field name="binding_model_id" ref="stock.model_product_template" />
         <field name="binding_type">report</field>
     </record>
