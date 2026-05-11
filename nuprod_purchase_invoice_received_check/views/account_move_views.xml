@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="nu_account_move_form_inherit" model="ir.ui.view">
+        <field name="name">account.move.form.nu.invoice.received.check</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-warning" role="alert"
+                     invisible="not nu_has_invoice_over_received or state != 'draft' or move_type != 'in_invoice'">
+                    <field name="nu_invoice_over_received_warning" widget="text" readonly="1" nolabel="1"/>
+                </div>
+                <field name="nu_has_invoice_over_received" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
