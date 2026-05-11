@@ -198,3 +198,13 @@ class TestInvoiceReceivedCheck(TransactionCase):
         invoice.invoice_line_ids.write({"quantity": 10})
         invoice.with_user(bypass_user).action_post()
         self.assertEqual(invoice.state, "posted")
+
+    def test_warning_recomputed_on_quantity_change(self):
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=4)
+        invoice = self._make_invoice_from_po(po)
+        invoice.invoice_line_ids.write({"quantity": 10})
+        self.assertTrue(invoice.nu_has_invoice_over_received)
+        invoice.invoice_line_ids.write({"quantity": 4})
+        self.assertFalse(invoice.nu_has_invoice_over_received)
+        self.assertFalse(invoice.nu_invoice_over_received_warning)
