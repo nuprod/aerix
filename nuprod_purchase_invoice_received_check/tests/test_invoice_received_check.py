@@ -178,3 +178,23 @@ class TestInvoiceReceivedCheck(TransactionCase):
         })
         with self.assertRaises(UserError):
             invoice.action_post()
+
+    def test_bypass_group_allows_validation(self):
+        bypass_group = self.env.ref(
+            "nuprod_purchase_invoice_received_check.group_force_invoice_without_reception"
+        )
+        bypass_user = self.env["res.users"].create({
+            "name": "Bypass User",
+            "login": "bypass_user_test",
+            "groups_id": [(6, 0, [
+                self.env.ref("account.group_account_invoice").id,
+                self.env.ref("purchase.group_purchase_user").id,
+                bypass_group.id,
+            ])],
+        })
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=4)
+        invoice = self._make_invoice_from_po(po)
+        invoice.invoice_line_ids.write({"quantity": 10})
+        invoice.with_user(bypass_user).action_post()
+        self.assertEqual(invoice.state, "posted")
