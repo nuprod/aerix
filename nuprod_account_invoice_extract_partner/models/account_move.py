@@ -21,7 +21,7 @@ class AccountMove(models.Model):
         if not domain:
             return False
         return bool(self.env["mail.alias.domain"].sudo().search_count(
-            [("name", "=", domain)],
+            [("name", "=ilike", domain)],
         ))
 
     @api.model
