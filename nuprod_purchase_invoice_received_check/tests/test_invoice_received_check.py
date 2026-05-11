@@ -75,3 +75,17 @@ class TestInvoiceReceivedCheck(TransactionCase):
         invoice.action_post()
         self.assertEqual(invoice.state, "posted")
         self.assertFalse(invoice.nu_has_invoice_over_received)
+
+    def test_invoice_no_purchase(self):
+        invoice = self.env["account.move"].create({
+            "move_type": "in_invoice",
+            "partner_id": self.partner.id,
+            "invoice_line_ids": [(0, 0, {
+                "product_id": self.product.id,
+                "quantity": 5,
+                "price_unit": 50,
+            })],
+        })
+        self.assertFalse(invoice.nu_has_invoice_over_received)
+        invoice.action_post()
+        self.assertEqual(invoice.state, "posted")
