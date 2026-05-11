@@ -71,7 +71,7 @@ Héritage pur de `account.move`. Aucun nouveau modèle custom.
 | Champ | Type | Stocké | Rôle |
 |---|---|---|---|
 | `nu_has_invoice_over_received` | `Boolean` (computed) | Non | True si au moins une ligne facturée dépasse le reçu. |
-| `nu_invoice_over_received_warning` | `Char` (computed) | Non | Texte du message affiché dans le bandeau d'alerte. |
+| `nu_invoice_over_received_warning` | `Text` (computed) | Non | Texte multi-lignes affiché dans le bandeau d'alerte (utilise `\n` pour les bullets, rendu via `widget="text"`). |
 
 **Dépendances du compute** :
 - `invoice_line_ids`
