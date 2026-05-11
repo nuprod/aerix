@@ -199,6 +199,34 @@ class TestInvoiceReceivedCheck(TransactionCase):
         invoice.with_user(bypass_user).action_post()
         self.assertEqual(invoice.state, "posted")
 
+    def test_batch_post_multiple_invoices_within_received(self):
+        # PO 10, received 8. Two draft bills on the same PO line: qty 5 and qty 3.
+        # Post both at once via _post() on the combined recordset.
+        #
+        # NOTE: Per Odoo 19 source addons/purchase/models/purchase_order_line.py
+        # _prepare_qty_invoiced, po_line.qty_invoiced aggregates ALL invoice
+        # lines whose move state is "not in ['cancel']" — drafts included.
+        # So when _post iterates the batch, for each move:
+        #   qty_invoiced (includes both drafts: 5 + 3 = 8)
+        #   - qty_current (this move's own contribution)
+        #   + qty_current
+        # = 8, which equals qty_received (8), no excess. Both should post.
+        #
+        # If this test fails, the assumption is wrong and the helper would
+        # need to subtract qty from all moves in the active batch, not just
+        # self. The Odoo source confirms drafts are included, so the helper
+        # is correct as-is.
+        po = self._make_po(self.product, qty=10)
+        self._receive(po, qty=8)
+        bill_a = self._make_invoice_from_po(po)
+        bill_a.invoice_line_ids.write({"quantity": 5})
+        bill_b = self._make_invoice_from_po(po)
+        bill_b.invoice_line_ids.write({"quantity": 3})
+        batch = bill_a | bill_b
+        batch._post(soft=False)
+        self.assertEqual(bill_a.state, "posted")
+        self.assertEqual(bill_b.state, "posted")
+
     def test_warning_recomputed_on_quantity_change(self):
         po = self._make_po(self.product, qty=10)
         self._receive(po, qty=4)
