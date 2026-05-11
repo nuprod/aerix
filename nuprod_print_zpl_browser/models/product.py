@@ -26,11 +26,10 @@ class nuprod_product_template_zpl(models.Model):
         printer = printers[0]
 
         if layout_data:
-            layout_data["report_name"] = "nuprod_print_zpl_browser.report_nuprod_product_label_zpl"
-
+            report_action = self.env.ref('nuprod_print_zpl_browser.nuprod_product_template_zpl')
             render = self.env["ir.actions.report"]._render(
-                layout_data["report_name"],
-                self.product_variant_ids.ids,
+                report_action,
+                self.ids,
                 layout_data["data"],
             )
 
@@ -69,10 +68,9 @@ class nuprod_product_product_zpl(models.Model):
         layout_data = layout.process()
 
         if layout_data:
-            layout_data["report_name"] = "nuprod_print_zpl_browser.report_nuprod_product_label_zpl"
-
+            report_action = self.env.ref('nuprod_print_zpl_browser.nuprod_product_product_zpl')
             render = self.env["ir.actions.report"]._render(
-                layout_data["report_name"],
+                report_action,
                 self.ids,
                 layout_data["data"],
             )
