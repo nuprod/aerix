@@ -17,7 +17,19 @@ class MrpBom(models.Model):
     # Explosion récursive de la nomenclature
     # ------------------------------------------------------------------
     def _nuprod_collect_export_lines(self, qty_needed, level, visited):
-        """Retourne la liste des lignes (dict) de la nomenclature explosée.
+        """Explose la nomenclature et calcule les coûts par roll-up.
+
+        Retourne le tuple ``(rows, total)`` où :
+
+        - ``rows`` est la liste des lignes (dict) de la nomenclature explosée ;
+        - ``total`` est le coût roll-up de cette BOM pour ``qty_needed``,
+          c'est-à-dire la somme des coûts des composants achetés (feuilles).
+
+        Le coût d'un sous-ensemble fabriqué n'est PAS lu sur son
+        ``standard_price`` (souvent à 0 car non recalculé par Odoo) mais
+        reconstruit comme la somme des coûts de ses propres composants.
+        Seules les feuilles (produits sans sous-nomenclature) sont valorisées
+        via ``standard_price``, ce qui évite tout double comptage.
 
         :param qty_needed: quantité du produit de cette BOM à produire,
             exprimée dans l'unité du produit de la BOM.
@@ -27,8 +39,9 @@ class MrpBom(models.Model):
         """
         self.ensure_one()
         rows = []
+        total = 0.0
         if self.id in visited:
-            return rows
+            return rows, total
         visited = visited | {self.id}
 
         # Nombre de "lots" de la BOM nécessaires pour couvrir qty_needed.
@@ -37,43 +50,66 @@ class MrpBom(models.Model):
         for line in self.bom_line_ids:
             product = line.product_id
             line_qty = batches * line.product_qty
-            unit_cost = product.standard_price
-            rows.append({
-                'level': level + 1,
-                'default_code': product.default_code or '',
-                'name': product.display_name,
-                'qty': line_qty,
-                'uom': line.product_uom_id.name,
-                'unit_cost': unit_cost,
-                'line_cost': unit_cost * line_qty,
-            })
-
             child = line.child_bom_id
+
             if child:
+                # Quantité exprimée dans l'UdM de la BOM enfant.
                 if line.product_uom_id != child.product_uom_id:
                     child_qty = line.product_uom_id._compute_quantity(
                         line_qty, child.product_uom_id, round=False)
                 else:
                     child_qty = line_qty
-                rows += child._nuprod_collect_export_lines(
+                child_rows, line_cost = child._nuprod_collect_export_lines(
                     child_qty, level + 1, visited)
-        return rows
+                # Coût unitaire du sous-ensemble = coût roll-up / quantité.
+                unit_cost = (line_cost / line_qty) if line_qty else 0.0
+                rows.append({
+                    'level': level + 1,
+                    'default_code': product.default_code or '',
+                    'name': product.display_name,
+                    'qty': line_qty,
+                    'uom': line.product_uom_id.name,
+                    'unit_cost': unit_cost,
+                    'line_cost': line_cost,
+                    'is_leaf': False,
+                })
+                rows += child_rows
+                total += line_cost
+            else:
+                unit_cost = product.standard_price
+                line_cost = unit_cost * line_qty
+                rows.append({
+                    'level': level + 1,
+                    'default_code': product.default_code or '',
+                    'name': product.display_name,
+                    'qty': line_qty,
+                    'uom': line.product_uom_id.name,
+                    'unit_cost': unit_cost,
+                    'line_cost': line_cost,
+                    'is_leaf': True,
+                })
+                total += line_cost
+        return rows, total
 
     def _nuprod_get_export_rows(self):
         """Lignes complètes de l'export, en-tête produit fini inclus (niveau 0)."""
         self.ensure_one()
         product = self.product_id or self.product_tmpl_id.product_variant_id
+        child_rows, total_cost = self._nuprod_collect_export_lines(
+            self.product_qty, level=0, visited=set())
+        # Niveau 0 = produit fini : son coût est le roll-up de ses composants.
+        unit_cost = (total_cost / self.product_qty) if self.product_qty else 0.0
         rows = [{
             'level': 0,
             'default_code': product.default_code or '',
             'name': product.display_name or self.product_tmpl_id.display_name,
             'qty': self.product_qty,
             'uom': self.product_uom_id.name,
-            'unit_cost': product.standard_price,
-            'line_cost': product.standard_price * self.product_qty,
+            'unit_cost': unit_cost,
+            'line_cost': total_cost,
+            'is_leaf': False,
         }]
-        rows += self._nuprod_collect_export_lines(
-            self.product_qty, level=0, visited=set())
+        rows += child_rows
         return rows
 
     # ------------------------------------------------------------------
@@ -95,7 +131,11 @@ class MrpBom(models.Model):
             'align': 'center', 'valign': 'vcenter',
         })
         cell_fmt = workbook.add_format({'border': 1})
-        qty_fmt = workbook.add_format({'border': 1, 'num_format': '#,##0.###'})
+        # Deux formats de quantité : entier (aucune virgule possible) et
+        # décimale (séparateur décimal local, ex. "2,5"). Pas de séparateur
+        # de milliers pour éviter toute ambiguïté de lecture.
+        qty_int_fmt = workbook.add_format({'border': 1, 'num_format': '0'})
+        qty_dec_fmt = workbook.add_format({'border': 1, 'num_format': '0.###'})
         money_cell_fmt = workbook.add_format({'border': 1, 'num_format': money_fmt})
         total_fmt = workbook.add_format({'bold': True, 'border': 1})
         total_money_fmt = workbook.add_format({
@@ -126,12 +166,16 @@ class MrpBom(models.Model):
             sheet.write_number(line_no, 0, row['level'], cell_fmt)
             sheet.write_string(line_no, 1, row['default_code'], cell_fmt)
             sheet.write_string(line_no, 2, row['name'], get_name_fmt(row['level']))
-            sheet.write_number(line_no, 3, row['qty'], qty_fmt)
+            # Arrondi à 3 décimales puis choix entier/décimale pour l'affichage.
+            qty = round(row['qty'], 3)
+            qty_fmt = qty_int_fmt if qty == int(qty) else qty_dec_fmt
+            sheet.write_number(line_no, 3, qty, qty_fmt)
             sheet.write_string(line_no, 4, row['uom'] or '', cell_fmt)
             sheet.write_number(line_no, 5, row['unit_cost'], money_cell_fmt)
             sheet.write_number(line_no, 6, row['line_cost'], money_cell_fmt)
-            # On exclut le niveau 0 (produit fini) du total des composants.
-            if row['level'] > 0:
+            # Total sur les feuilles uniquement (composants achetés) afin
+            # d'éviter le double comptage avec les sous-ensembles fabriqués.
+            if row.get('is_leaf'):
                 total_cost += row['line_cost']
             line_no += 1
 
