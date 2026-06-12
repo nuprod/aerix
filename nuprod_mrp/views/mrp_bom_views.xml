@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="nu_mrp_bom_form_inherit" model="ir.ui.view">
+        <field name="name">nu.mrp.bom.form.export.xlsx</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_form_view"/>
+        <field name="arch" type="xml">
+            <sheet position="before">
+                <header>
+                    <button name="action_nuprod_export_bom_xlsx"
+                            type="object"
+                            string="Export Excel"
+                            class="btn-primary"
+                            icon="fa-file-excel-o"/>
+                </header>
+            </sheet>
+        </field>
+    </record>
+</odoo>
