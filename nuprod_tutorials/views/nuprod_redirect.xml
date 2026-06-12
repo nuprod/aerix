@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Valeur par défaut du paramètre système. noupdate="1" pour ne pas
+         écraser une URL modifiée par l'admin lors d'une mise à jour du module. -->
+    <data noupdate="1">
+        <record id="param_redirect_url" model="ir.config_parameter">
+            <field name="key">nuprod_tutorials.redirect_url</field>
+            <field name="value">https://nuprod.fr/knowledge/article/262</field>
+        </record>
+    </data>
+
+    <data>
+        <!-- Action serveur : lit l'URL dans les paramètres système au clic
+             et redirige dynamiquement. Permet de changer l'URL sans mettre
+             à jour le module (Configuration > Technique > Paramètres système). -->
+        <record id="action_redirect" model="ir.actions.server">
+            <field name="name">Redirect</field>
+            <field name="model_id" ref="base.model_ir_config_parameter"/>
+            <field name="state">code</field>
+            <field name="code">
+url = env['ir.config_parameter'].sudo().get_param(
+    'nuprod_tutorials.redirect_url',
+    'https://nuprod.fr/knowledge/article/262',
+)
+action = {
+    'type': 'ir.actions.act_url',
+    'url': url,
+    'target': 'self',
+}
+            </field>
+        </record>
+
+        <record id="main_nuprod_menu" model="ir.ui.menu">
+            <field name="name">Pas À Pas Nuprod</field>
+            <field name="sequence">10</field>
+            <field name="web_icon">nuprod_tutorials,static/description/icon.png</field>
+        </record>
+
+        <record id="menu_redirect" model="ir.ui.menu">
+            <field name="name">Redirect</field>
+            <field name="parent_id" ref="main_nuprod_menu"/>
+            <field name="action" ref="action_redirect"/>
+            <field name="sequence">20</field>
+        </record>
+    </data>
+</odoo>
