@@ -1,6 +1,6 @@
 {
     'name': 'Nuprod Tutorials',
-    'version': '19.0.1.0.0',
+    'version': '1.0.0',
     'summary': 'A module to redirect to the nuprod tutorials',
     'description': 'A module to redirect to the nuprod tutorials',
     'author': 'Nuprod',
