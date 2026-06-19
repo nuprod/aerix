@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_nu_asset_transfer_map_user,nu.asset.transfer.map user,model_nu_asset_transfer_map,account.group_account_user,1,0,0,0
+access_nu_asset_transfer_map_manager,nu.asset.transfer.map manager,model_nu_asset_transfer_map,account.group_account_manager,1,1,1,1
