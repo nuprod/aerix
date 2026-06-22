@@ -24,25 +24,41 @@ class NuAssetTransferMap(models.Model):
         'account.journal', string="Journal d'OD", required=True,
         domain="[('type', '=', 'general')]",
         help="Journal d'opérations diverses utilisé pour l'écriture de virement.")
+    nu_asset_model_id = fields.Many2one(
+        'account.asset', string="Modèle d'immobilisation",
+        domain="[('state', '=', 'model'), ('company_id', '=', nu_company_id)]",
+        help="Optionnel. Permet de router un même compte d'en-cours (ex. 231000) "
+             "vers plusieurs comptes définitifs selon la nature du bien : la fiche "
+             "dont le modèle correspond utilise ce couple. Laisser vide pour la "
+             "ligne « générique » utilisée quand aucun modèle ne correspond.")
     nu_is_active = fields.Boolean(string="Actif", default=True)
 
     @api.depends('nu_in_progress_account_id', 'nu_target_account_id',
-                 'nu_in_progress_account_id.code', 'nu_target_account_id.code')
+                 'nu_in_progress_account_id.code', 'nu_target_account_id.code',
+                 'nu_asset_model_id')
     def _compute_name(self):
         for mapping in self:
             source = mapping.nu_in_progress_account_id
             target = mapping.nu_target_account_id
             if source and target:
                 company = mapping.nu_company_id or self.env.company
-                mapping.name = "%s → %s" % (
+                name = "%s → %s" % (
                     source._nu_code_for_company(company),
                     target._nu_code_for_company(company))
+                if mapping.nu_asset_model_id:
+                    name += " (%s)" % mapping.nu_asset_model_id.name
+                mapping.name = name
             else:
                 mapping.name = ""
 
-    @api.constrains('nu_company_id', 'nu_in_progress_account_id', 'nu_is_active')
+    @api.constrains('nu_company_id', 'nu_in_progress_account_id',
+                    'nu_asset_model_id', 'nu_is_active')
     def _check_unique_active_mapping(self):
-        """Un seul mapping actif par (société, compte en-cours)."""
+        """Un seul mapping actif par (société, compte en-cours, modèle).
+
+        Un même compte d'en-cours (ex. 231000) peut donc avoir plusieurs lignes
+        actives, à condition qu'elles ciblent des modèles différents — plus au
+        plus une ligne « générique » (sans modèle)."""
         for mapping in self:
             if not mapping.nu_is_active:
                 continue
@@ -51,13 +67,18 @@ class NuAssetTransferMap(models.Model):
                 ('nu_company_id', '=', mapping.nu_company_id.id),
                 ('nu_in_progress_account_id', '=',
                  mapping.nu_in_progress_account_id.id),
+                ('nu_asset_model_id', '=', mapping.nu_asset_model_id.id),
                 ('nu_is_active', '=', True),
             ])
             if duplicate:
+                detail = (
+                    "le modèle « %s »" % mapping.nu_asset_model_id.name
+                    if mapping.nu_asset_model_id else "aucun modèle (ligne générique)")
                 raise ValidationError(
-                    "Un mapping actif existe déjà pour le compte « %s » dans la "
-                    "société « %s ». Il ne peut y en avoir qu'un seul." % (
+                    "Un mapping actif existe déjà pour le compte « %s » et %s "
+                    "dans la société « %s »." % (
                         mapping.nu_in_progress_account_id.display_name,
+                        detail,
                         mapping.nu_company_id.display_name))
 
     @api.constrains('nu_in_progress_account_id', 'nu_company_id')

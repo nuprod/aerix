@@ -1,6 +1,6 @@
 {
     'name': "Nuprod — Immobilisations en cours (mise en service)",
-    'version': '19.0.1.0.0',
+    'version': '19.0.2.0.0',
     'summary': "Virement comptable immobilisation en cours (23x) → définitive (21x/205x) à la mise en service",
     'description': """
 Nuprod — Immobilisations en cours

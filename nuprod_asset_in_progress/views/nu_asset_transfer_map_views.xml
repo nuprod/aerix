@@ -8,6 +8,7 @@
             <list string="Mappings immobilisations en cours">
                 <field name="nu_company_id" groups="base.group_multi_company"/>
                 <field name="nu_in_progress_account_id"/>
+                <field name="nu_asset_model_id"/>
                 <field name="nu_target_account_id"/>
                 <field name="nu_journal_id"/>
                 <field name="nu_is_active" widget="boolean_toggle"/>
@@ -27,6 +28,7 @@
                         <group>
                             <field name="nu_company_id" groups="base.group_multi_company"/>
                             <field name="nu_in_progress_account_id"/>
+                            <field name="nu_asset_model_id"/>
                             <field name="nu_target_account_id"/>
                         </group>
                         <group>

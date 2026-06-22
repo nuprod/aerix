@@ -22,6 +22,22 @@ Fonctionnement
    (``nu_transfer_move_id``).
 4. **Idempotence** — un asset déjà pourvu d'une OD n'en reçoit jamais une seconde.
 
+Routage d'un compte d'en-cours vers plusieurs comptes définitifs
+================================================================
+
+Un même compte d'en-cours peut cibler **plusieurs** comptes définitifs selon la
+nature du bien (typiquement ``231000`` corporel → ``218300`` informatique,
+``215400`` matériel industriel, ``213000`` constructions…). Le tri se fait par le
+**modèle d'immobilisation** (``model_id``) :
+
+- une ligne de mapping peut porter un **modèle** : elle s'applique aux fiches de
+  ce modèle ;
+- une ligne **sans modèle** sert de **repli générique** pour le compte d'en-cours.
+
+À la mise en service, le module privilégie la ligne dont le modèle correspond à la
+fiche, puis retombe sur la ligne générique. Le cas incorporel ``232000 → 205000``
+reste une simple ligne générique (sans modèle).
+
 Paramétrage
 ===========
 
@@ -30,6 +46,12 @@ Paramétrage
   - ``False`` (**défaut**) : l'OD est créée en **brouillon** (relecture/post par
     le comptable).
   - ``True`` : l'OD est **postée automatiquement** à la mise en service.
+
+- ``nuprod_asset_in_progress.required_analytic_plan_ids`` : liste d'IDs de plans
+  analytiques (``account.analytic.plan``) séparés par des virgules, rendus
+  **obligatoires à la confirmation** d'une immobilisation. Vide = aucun contrôle.
+  Ex. ``13,10`` pour exiger un axe **CAPEX** *et* un axe **Cost_Center** ; sinon la
+  confirmation est bloquée par un message listant les axes manquants.
 
 Garde-fou de date
 =================
@@ -65,19 +87,29 @@ en 23x se reprend via le script séparé
 
 Voir l'en-tête du script pour l'usage en ``odoo shell``.
 
-À FAIRE à l'installation : désactiver les 3 server actions existantes
-=====================================================================
+À FAIRE à l'installation : désactiver les server actions maison
+===============================================================
 
-Ce module **remplace** trois ``ir.actions.server`` bricolées en base, toutes
-cassées ou fragiles. Elles doivent être **désactivées** (Paramètres →
-Technique → Actions → Actions serveur) pour éviter tout double traitement :
+Ce module **remplace** trois ``ir.actions.server`` bricolées en base de
+production (IDs **1053 / 1054 / 1055**), cassées ou fragiles. Elles doivent être
+**désactivées** au déploiement (Paramètres → Technique → Actions → Actions
+serveur) pour éviter tout double traitement :
 
-1. *« vide ``prorata_date`` si compte 23x »* — écrit ``False`` sur un champ NOT
-   NULL → violation non déterministe. Remplacée par le garde-fou de date.
-2. *« garde-fou confirmation »* — teste ``state == 'open'`` pour bloquer le
-   passage *vers* ``open`` (logique inversée). Remplacée par le garde-fou intégré.
-3. *« bascule 23x → 21x »* — teste ``original_account.code`` (champ inexistant en
-   v19) et ne tourne jamais. Remplacée par le virement automatique de ce module.
+- **1054** — *« vide ``prorata_date`` à la création depuis 23x »* : écrit
+  ``False`` sur un champ NOT NULL → violation non déterministe. Remplacée par le
+  garde-fou de date (qui bloque à la confirmation sans jamais vider la date).
+- **1055** — *« blocage confirmation si prorata = date acquisition »* : remplacée
+  à l'identique par le garde-fou intégré (+ dérogation ``nu_is_force_in_service``).
+- **1053** — *« génération OD 23x → 21x à la confirmation »* : teste
+  ``original_account.code`` (champ inexistant en v19) et ne tourne jamais.
+  Remplacée — et fiabilisée — par le virement automatique de ce module.
+
+**Server action 1052 — NON couverte par ce module.** Le blocage de la validation
+d'une facture dont une ligne immobilisée est < 500 € HT (tolérance fiscale
+BOFIP-BIC-CHG-20-30-10 §35) agit sur la *facture* (``account.move``), pas sur la
+mise en service. Elle **reste à votre charge** (server action 1052 conservée) tant
+qu'une brique dédiée n'est pas livrée. À porter dans un module complémentaire si
+besoin.
 
 Tests
 =====

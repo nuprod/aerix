@@ -60,11 +60,47 @@ class AccountAsset(models.Model):
         tableau d'amortissement et poste les dotations. Le virement de bilan est
         donc posé une fois l'asset confirmé.
         """
+        self._nu_check_required_analytic()
         res = super().validate()
         for asset in self:
             if asset.nu_is_in_progress:
                 asset._nu_generate_transfer_move()
         return res
+
+    # ------------------------------------------------------------------
+    # Axes analytiques obligatoires à la confirmation (paramétrable)
+    # ------------------------------------------------------------------
+    def _nu_required_analytic_plans(self):
+        """Plans analytiques rendus obligatoires à la confirmation.
+
+        Configurés via le paramètre système
+        ``nuprod_asset_in_progress.required_analytic_plan_ids`` (ids séparés par
+        des virgules). Vide → aucun contrôle."""
+        raw = self.env['ir.config_parameter'].sudo().get_param(
+            'nuprod_asset_in_progress.required_analytic_plan_ids', default='')
+        ids = [int(x) for x in raw.replace(';', ',').split(',') if x.strip().isdigit()]
+        return self.env['account.analytic.plan'].browse(ids).exists()
+
+    def _nu_check_required_analytic(self):
+        """Bloque la confirmation si un axe analytique obligatoire manque."""
+        required = self._nu_required_analytic_plans()
+        if not required:
+            return
+        for asset in self:
+            distribution = asset.analytic_distribution or {}
+            account_ids = {
+                int(aid)
+                for key in distribution
+                for aid in str(key).split(',') if aid.strip().isdigit()
+            }
+            covered = self.env['account.analytic.account'].browse(
+                account_ids).exists().root_plan_id
+            missing = required - covered
+            if missing:
+                raise UserError(_(
+                    "Cette immobilisation ne peut pas être confirmée : les axes "
+                    "analytiques suivants sont obligatoires et manquants : %s.",
+                    ", ".join(missing.mapped('name'))))
 
     def _nu_auto_post(self):
         """Booléen : poster automatiquement l'OD ? (défaut False = brouillon)."""
@@ -73,13 +109,25 @@ class AccountAsset(models.Model):
         return param.strip().lower() in ('1', 'true', 'yes', 'on')
 
     def _nu_get_transfer_map(self):
-        """Mapping actif (société, compte 23x d'origine) ou recordset vide."""
+        """Mapping actif pour cet asset, ou recordset vide.
+
+        Routage : un même compte d'en-cours (ex. 231000) peut cibler plusieurs
+        comptes définitifs selon le **modèle** de la fiche. On privilégie la ligne
+        dont le modèle correspond à ``model_id`` ; à défaut, on retombe sur la
+        ligne « générique » (sans modèle) du compte d'origine."""
         self.ensure_one()
-        return self.env['nu.asset.transfer.map'].search([
+        Map = self.env['nu.asset.transfer.map']
+        base = [
             ('nu_company_id', '=', self.company_id.id),
             ('nu_in_progress_account_id', '=', self.account_asset_id.id),
             ('nu_is_active', '=', True),
-        ], limit=1)
+        ]
+        if self.model_id:
+            specific = Map.search(
+                base + [('nu_asset_model_id', '=', self.model_id.id)], limit=1)
+            if specific:
+                return specific
+        return Map.search(base + [('nu_asset_model_id', '=', False)], limit=1)
 
     def _nu_generate_transfer_move(self):
         """Génère (et lie) l'OD de virement de l'immobilisation en cours.
