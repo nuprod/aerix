@@ -76,8 +76,15 @@ class MrpBom(models.Model):
                 rows += child_rows
                 total += line_cost
             else:
-                unit_cost = product.standard_price
-                line_cost = unit_cost * line_qty
+                # Convertir line_qty dans l'UdM native du produit pour que
+                # standard_price (exprimé par unité native) soit cohérent.
+                if line.product_uom_id != product.uom_id:
+                    qty_for_cost = line.product_uom_id._compute_quantity(
+                        line_qty, product.uom_id, round=False)
+                else:
+                    qty_for_cost = line_qty
+                line_cost = product.standard_price * qty_for_cost
+                unit_cost = (line_cost / line_qty) if line_qty else 0.0
                 rows.append({
                     'level': level + 1,
                     'default_code': product.default_code or '',
@@ -89,6 +96,24 @@ class MrpBom(models.Model):
                     'is_leaf': True,
                 })
                 total += line_cost
+
+        for op in self.operation_ids:
+            wc = op.workcenter_id
+            time_min = batches * (wc.time_start + wc.time_stop + op.time_cycle_manual)
+            op_time_h = time_min / 60.0
+            op_cost = op_time_h * wc.costs_hour
+            rows.append({
+                'level': level + 1,
+                'default_code': '',
+                'name': op.name or wc.name,
+                'qty': op_time_h,
+                'uom': 'h',
+                'unit_cost': wc.costs_hour,
+                'line_cost': op_cost,
+                'is_leaf': True,
+            })
+            total += op_cost
+
         return rows, total
 
     def _nuprod_get_export_rows(self):
