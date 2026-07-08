@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="nu_account_asset_form_inherit" model="ir.ui.view">
+        <field name="name">account.asset.form.nu.in.progress</field>
+        <field name="model">account.asset</field>
+        <field name="inherit_id" ref="account_asset.view_account_asset_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Smart button vers l'OD de virement -->
+            <button name="open_entries" position="after">
+                <button name="action_nu_open_transfer_move"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-exchange"
+                        invisible="not nu_transfer_move_id">
+                    <div class="o_stat_info">
+                        <span class="o_stat_text">OD de mise</span>
+                        <span class="o_stat_text">en service</span>
+                    </div>
+                </button>
+            </button>
+
+            <!-- Champs techniques + dérogation, près de la date de prorata -->
+            <field name="prorata_date" position="after">
+                <field name="nu_is_in_progress" invisible="1"/>
+                <field name="nu_in_progress_account_id"
+                       invisible="not nu_is_in_progress" readonly="1"/>
+                <field name="nu_transfer_move_id" invisible="1"/>
+                <field name="nu_is_force_in_service"
+                       invisible="not nu_is_in_progress"
+                       readonly="state != 'draft'"/>
+            </field>
+
+        </field>
+    </record>
+
+</odoo>

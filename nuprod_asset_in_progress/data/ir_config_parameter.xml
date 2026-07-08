@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!--
+        Comportement par défaut de l'OD de virement à la mise en service.
+        False = brouillon (recommandé : relecture/post par le comptable).
+        True  = posté automatiquement.
+    -->
+    <record id="nu_asset_auto_post_param" model="ir.config_parameter">
+        <field name="key">nuprod_asset_in_progress.auto_post</field>
+        <field name="value">False</field>
+    </record>
+
+    <!--
+        Axes analytiques obligatoires à la confirmation d'une immobilisation.
+        IDs de plans analytiques (account.analytic.plan) séparés par des virgules.
+        Vide = aucun contrôle. Ex. "13,10" pour CAPEX + Cost_Center.
+    -->
+    <record id="nu_asset_required_analytic_param" model="ir.config_parameter">
+        <field name="key">nuprod_asset_in_progress.required_analytic_plan_ids</field>
+        <field name="value"></field>
+    </record>
+
+</odoo>
