@@ -1,6 +1,6 @@
 {
     'name': "Nuprod — Immobilisations en cours (mise en service)",
-    'version': '19.0.2.0.0',
+    'version': '19.0.2.1.0',
     'summary': "Virement comptable immobilisation en cours (23x) → définitive (21x/205x) à la mise en service",
     'description': """
 Nuprod — Immobilisations en cours
@@ -15,6 +15,9 @@ immobilisation, étape du PCG français absente d'Odoo standard et d'OCA
 - Idempotence (jamais deux OD pour le même asset).
 - OD en brouillon par défaut (paramétrable vers posté).
 - Garde-fou date avec dérogation explicite (ne vide jamais ``prorata_date``).
+- Contrôle à la comptabilisation des factures fournisseurs : interdit
+  l'imputation en compte d'immobilisation ``21x`` sous un seuil paramétrable
+  (défaut 500 € HT, montant agrégé par compte).
 """,
     'author': "Nuprod",
     'website': 'https://www.nuprod.fr',
