@@ -284,3 +284,79 @@ class TestAssetRoutingAndAnalytic(TestAccountAssetCommon):
         asset = self._asset_231(model_id=self.model_info.id)
         asset.validate()
         self.assertTrue(asset.nu_transfer_move_id)
+
+
+@tagged('post_install', '-at_install')
+class TestAssetMinAmountOnBill(TestAccountAssetCommon):
+    """§ Contrôle < seuil € HT sur imputation immo (21x) à la comptabilisation."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env.company
+        cls.account_21 = cls.env['account.account'].create({
+            'name': "Installations techniques",
+            'code': '215000',
+            'account_type': 'asset_fixed',
+        })
+        cls.account_20 = cls.env['account.account'].create({
+            'name': "Concessions (incorporel)",
+            'code': '205000',
+            'account_type': 'asset_fixed',
+        })
+        cls.env['ir.config_parameter'].sudo().set_param(
+            'nuprod_asset_in_progress.min_asset_amount', '500')
+
+    def _bill(self, account, amounts, move_type='in_invoice'):
+        lines = [(0, 0, {
+            'name': 'Immo test',
+            'account_id': account.id,
+            'quantity': 1,
+            'price_unit': amt,
+            'tax_ids': [(6, 0, [])],
+        }) for amt in amounts]
+        return self.env['account.move'].create({
+            'move_type': move_type,
+            'partner_id': self.partner_a.id,
+            'invoice_date': '2024-06-01',
+            'invoice_line_ids': lines,
+        })
+
+    def test_below_threshold_blocks(self):
+        bill = self._bill(self.account_21, [300])
+        with self.assertRaises(UserError):
+            bill.action_post()
+
+    def test_at_threshold_passes(self):
+        bill = self._bill(self.account_21, [500])
+        bill.action_post()
+        self.assertEqual(bill.state, 'posted')
+
+    def test_above_threshold_passes(self):
+        bill = self._bill(self.account_21, [600])
+        bill.action_post()
+        self.assertEqual(bill.state, 'posted')
+
+    def test_aggregated_per_account_passes(self):
+        # Deux lignes de 300 sur le même compte 21x → cumul 600 ≥ 500 : OK.
+        bill = self._bill(self.account_21, [300, 300])
+        bill.action_post()
+        self.assertEqual(bill.state, 'posted')
+
+    def test_non_21_account_not_controlled(self):
+        # Un compte 20x sous le seuil n'est pas concerné par le contrôle 21x.
+        bill = self._bill(self.account_20, [100])
+        bill.action_post()
+        self.assertEqual(bill.state, 'posted')
+
+    def test_refund_below_threshold_blocks(self):
+        refund = self._bill(self.account_21, [300], move_type='in_refund')
+        with self.assertRaises(UserError):
+            refund.action_post()
+
+    def test_no_control_when_threshold_zero(self):
+        self.env['ir.config_parameter'].sudo().set_param(
+            'nuprod_asset_in_progress.min_asset_amount', '0')
+        bill = self._bill(self.account_21, [100])
+        bill.action_post()
+        self.assertEqual(bill.state, 'posted')
